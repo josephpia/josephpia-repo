@@ -1,50 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
-body{margin:0;font-family:Arial;display:flex;}
-.sidebar{
-width:250px;
-height:100vh;
-background:#2d3748;
-color:white;
-position:fixed;
-padding-top:20px;
-}
-.sidebar a{
-display:block;
-color:white;
-padding:15px 25px;
-text-decoration:none;
-}
-.sidebar a:hover{background:#4a5568;}
-.content{
-margin-left:250px;
-padding:30px;
-}
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
-}
-</style>
+    <title>Admin Dashboard</title>
+
+    <style>
+        body{
+            margin:0;
+            font-family:Arial;
+            display:flex;
+            background:#f4f6f9;
+        }
+
+        .sidebar{
+            width:250px;
+            height:100vh;
+            background:#1f2937;
+            color:white;
+            position:fixed;
+            padding-top:20px;
+        }
+
+        .sidebar a{
+            display:block;
+            color:white;
+            padding:15px 25px;
+            text-decoration:none;
+        }
+
+        .sidebar a:hover{
+            background:#374151;
+        }
+
+        .content{
+            margin-left:250px;
+            padding:30px;
+            width:100%;
+        }
+
+        .card{
+            background:white;
+            padding:20px;
+            border-radius:15px;
+            margin-bottom:20px;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        th,td{
+            padding:12px;
+            border-bottom:1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
 
 <div class="sidebar">
-<h2 style="text-align:center;">Admin Panel</h2>
-<a href="/appmonitor">📊 App Monitor</a>
-<a href="/history">🕒 History</a>
-<a href="/settings">⚙ Settings</a>
-<a href="/logout">🚪 Logout</a>
+    <h2 style="text-align:center;">Admin Panel</h2>
+    <a href="/admindashboard">🏠 Dashboard</a>
+    <a href="/logout">🚪 Logout</a>
 </div>
 
 <div class="content">
-<div class="card">
-<h2>Main Dashboard</h2>
-<p>Total Registered Users: {{ total_users }}</p>
-</div>
+
+    <div class="card">
+        <h2>Total Users: {{ total_users }}</h2>
+    </div>
+
+    <div class="card">
+        <h2>Users Information Saved</h2>
+
+        <table>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+            </tr>
+
+            {% for username, info in users.items() %}
+            <tr>
+                <td>{{ username }}</td>
+                <td>{{ info["role"] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Service Requests</h2>
+
+        <table>
+            <tr>
+                <th>Username</th>
+                <th>Request</th>
+            </tr>
+
+            {% for request in service_requests %}
+            <tr>
+                <td>{{ request.username if request.username else request["username"] }}</td>
+                <td>{{ request.service if request.service else request["service"] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
 </div>
 
 </body>
