@@ -1,71 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sign Up</title>
+    <title>Sign Up - Service System</title>
     <style>
-        body{
-            font-family: Arial;
-            background: linear-gradient(135deg,#667eea,#3e3aab);
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            min-height:100vh;
-            margin:0;
-            padding:20px;
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-        .box{
-            background:white;
-            padding:40px;
-            border-radius:15px;
-            width:500px;
-            text-align:center;
-            box-shadow:0 8px 20px rgba(0,0,0,0.2);
+
+        .box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            width: 550px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
-        input, button{
-            width:90%;
-            padding:12px;
-            margin:10px 0;
-            border-radius:8px;
-            border:1px solid #ddd;
+
+        h2 {
+            color: #1f2937;
+            margin-bottom: 20px;
         }
-        button{
-            background:#667eea;
-            color:white;
-            border:none;
-            cursor:pointer;
+
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
         }
-        .form-row{
-            display:flex;
-            gap:10px;
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
         }
-        .form-row input{
-            flex:1;
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-row input {
+            flex: 1;
+        }
+
+        button {
+            width: 95%;
+            padding: 12px;
+            margin: 15px 0 10px;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+        }
+
+        .message {
+            color: #ef4444;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .login-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
+
 <div class="box">
-    <h2>Sign Up</h2>
+    <h2>📝 Create Account</h2>
+
     <form method="POST">
         <div class="form-row">
             <input type="text" name="firstname" placeholder="First Name" required>
             <input type="text" name="middlename" placeholder="Middle Name">
         </div>
+        
         <div class="form-row">
             <input type="text" name="lastname" placeholder="Last Name" required>
             <input type="number" name="age" placeholder="Age" required>
         </div>
+        
         <input type="text" name="address" placeholder="Address" required>
-        <input type="date" name="birthdate" required>
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="tel" name="cellphone" placeholder="Cellphone" required>
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+        
+        <div class="form-row">
+            <input type="date" name="birthdate" required>
+            <input type="email" name="email" placeholder="Email" required>
+        </div>
+        
+        <div class="form-row">
+            <input type="tel" name="cellphone" placeholder="Cellphone Number" required>
+            <input type="text" name="username" placeholder="Username" required>
+        </div>
+        
+        <div class="form-row">
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+        </div>
+        
         <button type="submit">Sign Up</button>
     </form>
-    <p style="color:red;">{{ message }}</p>
-    <p>Already have an account? <a href="/login">Login</a></p>
+
+    {% if message %}
+        <p class="message">{{ message }}</p>
+    {% endif %}
+
+    <div class="login-link">
+        Already have an account? <a href="/login">Login Here</a>
+    </div>
 </div>
+
 </body>
 </html>

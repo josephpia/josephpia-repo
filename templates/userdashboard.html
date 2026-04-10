@@ -51,7 +51,6 @@
             justify-content: center;
             overflow: hidden;
             cursor: pointer;
-            position: relative;
         }
 
         .profile-pic img {
@@ -230,19 +229,40 @@
             transform: translateY(-2px);
         }
 
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-        }
-
         .btn-secondary {
             background: #6b7280;
             color: white;
             margin-top: 10px;
+        }
+
+        .btn-edit {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 0 3px;
+        }
+
+        .btn-delete {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #ef4444;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 0 3px;
+        }
+
+        .btn-edit:hover {
+            background: #5a67d8;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
         }
 
         /* ALERTS */
@@ -259,6 +279,18 @@
             background: #d1fae5;
             color: #065f46;
             border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
         }
 
         /* TABLE */
@@ -293,6 +325,11 @@
             color: #92400e;
         }
 
+        .status-ongoing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
         .status-completed {
             background: #d1fae5;
             color: #065f46;
@@ -319,6 +356,23 @@
             margin-bottom: 20px;
             border-left: 4px solid #667eea;
         }
+
+        .update-note {
+            background: #f0fdf4;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .update-note p {
+            margin: 0;
+            color: #166534;
+        }
+
+        .update-note small {
+            color: #6b7280;
+        }
     </style>
 </head>
 <body>
@@ -328,8 +382,8 @@
     
     <div class="profile-section">
         <div class="profile-pic" onclick="document.getElementById('profilePhotoInput').click()">
-            {% if user.profile_pic %}
-                <img src="{{ url_for('view_profile_photo', username=user.username) }}" alt="Profile">
+            {% if user and user.profile_pic %}
+                <img src="{{ url_for('view_profile_photo', username=session.username) }}" alt="Profile">
             {% else %}
                 <div class="no-photo">👤</div>
             {% endif %}
@@ -343,6 +397,10 @@
         <div class="stat-item">
             <span>📋 Total Requests</span>
             <span>{{ user_requests|length }}</span>
+        </div>
+        <div class="stat-item">
+            <span>🔄 On-Going</span>
+            <span>{{ user_requests|selectattr('status', 'equalto', 'ongoing')|list|length }}</span>
         </div>
         <div class="stat-item">
             <span>✅ Completed</span>
@@ -365,7 +423,7 @@
 
 <div class="content">
     <!-- Hidden form for profile photo -->
-    <form method="POST" enctype="multipart/form-data" id="profilePhotoForm" style="display: none;">
+    <form method="POST" action="/userdashboard" enctype="multipart/form-data" id="profilePhotoForm" style="display: none;">
         <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/*" onchange="this.form.submit()">
     </form>
 
@@ -379,7 +437,7 @@
             </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" id="serviceRequestForm">
+        <form method="POST" action="/userdashboard" enctype="multipart/form-data" id="serviceRequestForm">
             <div class="form-group">
                 <label for="service" class="required">Problem Description</label>
                 <textarea 
@@ -392,7 +450,7 @@
             </div>
 
             <div class="form-group">
-                <label>Upload Photo of the Problem (Recommended)</label>
+                <label>Upload Photo of the Problem (Optional)</label>
                 <div class="photo-upload-box" id="servicePhotoDropZone">
                     <div>📸</div>
                     <div><strong>Click to upload photo of the appliance</strong></div>
@@ -417,6 +475,13 @@
                 <span>{{ service_message }}</span>
             </div>
         {% endif %}
+        
+        {% if profile_message %}
+            <div class="alert alert-success">
+                <span>✅</span>
+                <span>{{ profile_message }}</span>
+            </div>
+        {% endif %}
     </div>
 
     <!-- MY REQUESTS CARD -->
@@ -425,7 +490,7 @@
             <div class="icon">📋</div>
             <div>
                 <h2>My Service Requests</h2>
-                <p>Track your requests and see admin responses</p>
+                <p>Track your requests and see admin updates</p>
             </div>
         </div>
 
@@ -438,13 +503,15 @@
                         <th>Photo</th>
                         <th>Status</th>
                         <th>Date</th>
+                        <th>Admin Update</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in user_requests %}
                     <tr>
-                        <td>{{ req.id }}</td>
-                        <td>{{ req.service[:80] }}{% if req.service|length > 80 %}...{% endif %}</td>
+                        <td><strong>{{ req.id }}</strong></td>
+                        <td style="max-width: 250px;">{{ req.service[:80] }}{% if req.service|length > 80 %}...{% endif %}</td>
                         <td>
                             {% if req.service_photo %}
                                 <img src="{{ url_for('view_service_photo', request_id=req.id) }}" 
@@ -458,11 +525,31 @@
                         <td>
                             {% if req.status == 'pending' %}
                                 <span class="status-badge status-pending">⏳ Pending</span>
+                            {% elif req.status == 'ongoing' %}
+                                <span class="status-badge status-ongoing">🔄 On-Going</span>
                             {% else %}
                                 <span class="status-badge status-completed">✅ Completed</span>
                             {% endif %}
                         </td>
                         <td>{{ req.date_requested[:16] }}</td>
+                        <td>
+                            {% if req.admin_notes %}
+                                <div class="update-note">
+                                    <p>📝 {{ req.admin_notes }}</p>
+                                    <small>Updated: {{ req.last_update[:16] }}</small>
+                                </div>
+                            {% else %}
+                                <span style="font-size: 12px; color: #9ca3af;">No updates yet</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                                <a href="/edit_request/{{ req.id }}" class="btn-edit">✏️ Edit</a>
+                                <a href="/delete_my_request/{{ req.id }}" class="btn-delete" onclick="return confirm('Delete this request?')">🗑️ Delete</a>
+                            {% else %}
+                                <span style="color: #9ca3af;">🔒 Locked</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -512,21 +599,25 @@
     const servicePhotoPreview = document.getElementById('servicePhotoPreview');
     const servicePreviewImage = document.getElementById('servicePreviewImage');
 
-    serviceDropZone.addEventListener('click', () => {
-        servicePhotoInput.click();
-    });
+    if (serviceDropZone) {
+        serviceDropZone.addEventListener('click', () => {
+            servicePhotoInput.click();
+        });
+    }
 
-    servicePhotoInput.addEventListener('change', (e) => {
-        if (servicePhotoInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                servicePreviewImage.src = e.target.result;
-                servicePhotoPreview.style.display = 'block';
-                serviceDropZone.style.display = 'none';
-            };
-            reader.readAsDataURL(servicePhotoInput.files[0]);
-        }
-    });
+    if (servicePhotoInput) {
+        servicePhotoInput.addEventListener('change', (e) => {
+            if (servicePhotoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    servicePreviewImage.src = e.target.result;
+                    servicePhotoPreview.style.display = 'block';
+                    serviceDropZone.style.display = 'none';
+                };
+                reader.readAsDataURL(servicePhotoInput.files[0]);
+            }
+        });
+    }
 
     function removeServicePhoto() {
         servicePhotoInput.value = '';

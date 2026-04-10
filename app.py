@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, abort, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, abort, send_from_directory, make_response
 from functools import wraps
 import hashlib
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 app = Flask(__name__)
@@ -12,13 +12,13 @@ app.secret_key = "secretkey123"
 PROFILE_UPLOAD_FOLDER = 'static/uploads/profiles'
 SERVICE_UPLOAD_FOLDER = 'static/uploads/service_requests'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 app.config['PROFILE_UPLOAD_FOLDER'] = PROFILE_UPLOAD_FOLDER
 app.config['SERVICE_UPLOAD_FOLDER'] = SERVICE_UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# Create upload folders if they don't exist
+# Create upload folders
 os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SERVICE_UPLOAD_FOLDER, exist_ok=True)
 
@@ -38,6 +38,7 @@ users = {
 login_count = 0
 service_requests = []
 activities = []
+request_id_counter = 1000
 
 # ===== HELPER FUNCTIONS =====
 def hash_password(password):
@@ -47,12 +48,16 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def save_file(file, folder):
-    """Save uploaded file and return filename"""
     ext = file.filename.rsplit('.', 1)[1].lower()
     filename = f"{uuid.uuid4().hex}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
     filepath = os.path.join(folder, filename)
     file.save(filepath)
     return filename
+
+def generate_request_id():
+    global request_id_counter
+    request_id_counter += 1
+    return f"SRQ-{request_id_counter}"
 
 def log_activity(username, action, details=""):
     activities.append({
@@ -68,9 +73,9 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('username'):
-            abort(403, description="Please login first")
+            abort(403)
         if session.get('role') != 'admin':
-            abort(403, description="Admin access required")
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -198,112 +203,185 @@ def user_dashboard():
         if photo.filename == '':
             profile_message = "No file selected"
         elif not allowed_file(photo.filename):
-            profile_message = "Invalid file type. Allowed: png, jpg, jpeg, gif, webp"
+            profile_message = "Invalid file type"
         else:
-            # Delete old profile photo if exists
             if users[session['username']].get('profile_pic'):
                 old_photo_path = os.path.join(app.config['PROFILE_UPLOAD_FOLDER'], users[session['username']]['profile_pic'])
                 if os.path.exists(old_photo_path):
                     os.remove(old_photo_path)
-            
-            # Save new profile photo
             filename = save_file(photo, app.config['PROFILE_UPLOAD_FOLDER'])
             users[session['username']]['profile_pic'] = filename
-            profile_message = "Profile photo uploaded successfully!"
-            log_activity(session['username'], "Profile Photo Upload", f"Uploaded {filename}")
+            profile_message = "Profile photo uploaded!"
+            log_activity(session['username'], "Profile Photo Upload", filename)
     
-    # Handle Service Request with Photo
+    # Handle Service Request
     elif request.method == 'POST' and 'service' in request.form:
         service = request.form.get('service', '').strip()
         
         if not service:
             service_message = "Please enter your service request"
         else:
-            # Handle service request photo
             if 'service_photo' in request.files:
                 photo = request.files['service_photo']
                 if photo.filename != '' and allowed_file(photo.filename):
                     service_photo = save_file(photo, app.config['SERVICE_UPLOAD_FOLDER'])
-                    log_activity(session['username'], "Service Photo Upload", f"Uploaded {service_photo}")
             
-            # Create service request
             service_requests.append({
-                "id": len(service_requests) + 1,
+                "id": generate_request_id(),
                 "username": session['username'],
                 "service": service,
                 "status": "pending",
                 "date_requested": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "service_photo": service_photo,
-                "has_photo": service_photo is not None
+                "has_photo": service_photo is not None,
+                "admin_notes": "",
+                "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
             users[session['username']]['total_requests'] = users[session['username']].get('total_requests', 0) + 1
-            service_message = "Service request submitted successfully!"
+            service_message = "Service request submitted!"
             log_activity(session['username'], "Service Request", service[:50])
 
-    # Get user's own requests
     user_requests = [req for req in service_requests if req['username'] == session['username']]
     
     return render_template('userdashboard.html', 
                          profile_message=profile_message,
                          service_message=service_message,
                          user_requests=user_requests,
-                         user=users[session['username']])
+                         user=users.get(session['username'], {}))
 
-# VIEW PROFILE PHOTO
+# EDIT REQUEST
+@app.route('/edit_request/<request_id>', methods=['GET', 'POST'])
+@login_required
+def edit_request(request_id):
+    request_to_edit = None
+    for req in service_requests:
+        if req['id'] == request_id and req['username'] == session['username']:
+            request_to_edit = req
+            break
+    
+    if not request_to_edit:
+        return "Request not found", 404
+    
+    if request_to_edit['status'] in ['ongoing', 'completed']:
+        return "Cannot edit request that is ongoing or completed", 403
+    
+    if request.method == 'POST':
+        new_service = request.form.get('service', '').strip()
+        if new_service:
+            request_to_edit['service'] = new_service
+            request_to_edit['last_edited'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_activity(session['username'], "Edited Request", request_id)
+            return redirect(url_for('user_dashboard'))
+    
+    return render_template('edit_request.html', request=request_to_edit)
+
+# DELETE MY REQUEST
+@app.route('/delete_my_request/<request_id>')
+@login_required
+def delete_my_request(request_id):
+    global service_requests
+    for req in service_requests:
+        if req['id'] == request_id and req['username'] == session['username']:
+            if req['status'] != 'pending':
+                return "Cannot delete request that is ongoing or completed", 403
+            if req.get('service_photo'):
+                photo_path = os.path.join(app.config['SERVICE_UPLOAD_FOLDER'], req['service_photo'])
+                if os.path.exists(photo_path):
+                    os.remove(photo_path)
+            service_requests = [r for r in service_requests if r['id'] != request_id]
+            log_activity(session['username'], "Deleted Own Request", request_id)
+            break
+    return redirect(url_for('user_dashboard'))
+
+# VIEW PHOTOS
 @app.route('/view_profile_photo/<username>')
 @login_required
 def view_profile_photo(username):
-    if username in users and users[username].get('profile_pic'):
+    if username not in users:
+        return "User not found", 404
+    if users[username].get('profile_pic'):
         return send_from_directory(app.config['PROFILE_UPLOAD_FOLDER'], users[username]['profile_pic'])
-    return send_from_directory('static', 'default-avatar.png', fallback=True)
+    return "No photo", 404
 
-# VIEW SERVICE REQUEST PHOTO
-@app.route('/view_service_photo/<int:request_id>')
+@app.route('/view_service_photo/<request_id>')
 @admin_required
 def view_service_photo(request_id):
     for req in service_requests:
         if req['id'] == request_id and req.get('service_photo'):
             return send_from_directory(app.config['SERVICE_UPLOAD_FOLDER'], req['service_photo'])
-    return "No photo available", 404
+    return "No photo", 404
 
 # ADMIN DASHBOARD
 @app.route('/admindashboard')
 @admin_required
 def admin_dashboard():
+    section = request.args.get('section', 'dashboard')
+    
     total_users = len([u for u in users if u != 'admin'])
+    total_requests = len(service_requests)
     pending_requests = len([r for r in service_requests if r.get('status') == 'pending'])
+    ongoing_requests = len([r for r in service_requests if r.get('status') == 'ongoing'])
     completed_requests = len([r for r in service_requests if r.get('status') == 'completed'])
     users_with_photos = len([u for u in users.values() if u.get('profile_pic')])
     requests_with_photos = len([r for r in service_requests if r.get('has_photo')])
     
-    recent_activities = activities[-10:][::-1]
+    week_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    week_data = [12, 15, 18, 14, 22, 8, 5]
+    max_week = max(week_data) if week_data else 1
+    
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    revenue_data = [8500, 9200, 10500, 11800, 12500, 14200, 15800, 16500, 17200, 18800, 19500, 21000]
+    max_revenue = max(revenue_data) if revenue_data else 1
+    
+    hours = ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '12 AM']
+    hourly_users = [3, 8, 15, 22, 18, 12, 5]
+    max_hourly = max(hourly_users) if hourly_users else 1
+    
+    theme = request.cookies.get('theme', 'light')
+    language = request.cookies.get('language', 'english')
     
     return render_template(
         'admindashboard.html',
+        section=section,
         total_users=total_users,
-        total_requests=len(service_requests),
+        total_requests=total_requests,
         pending_requests=pending_requests,
+        ongoing_requests=ongoing_requests,
         completed_requests=completed_requests,
         users_with_photos=users_with_photos,
         requests_with_photos=requests_with_photos,
         users=users,
         service_requests=service_requests,
+        week_days=week_days,
+        week_data=week_data,
+        max_week=max_week,
+        months=months,
+        revenue_data=revenue_data,
+        max_revenue=max_revenue,
+        hours=hours,
+        hourly_users=hourly_users,
+        max_hourly=max_hourly,
+        theme=theme,
+        language=language,
         login_count=login_count,
-        recent_activities=recent_activities
+        activities=activities[-10:]
     )
 
-# UPDATE REQUEST STATUS
-@app.route('/update_request/<int:request_id>', methods=['POST'])
+# UPDATE REQUEST STATUS - WITH ON-GOING AND NOTES
+@app.route('/update_request/<request_id>', methods=['POST'])
 @admin_required
 def update_request(request_id):
     status = request.form.get('status')
+    notes = request.form.get('notes', '')
     for req in service_requests:
         if req['id'] == request_id:
             req['status'] = status
-            req['date_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log_activity(session['username'], "Updated Request", f"Request #{request_id} -> {status}")
+            if notes:
+                req['admin_notes'] = notes
+            req['last_update'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_activity(session['username'], "Updated Request", f"{request_id} -> {status}")
             break
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard', section='requests'))
 
 # DELETE USER
 @app.route('/delete_user/<username>')
@@ -312,58 +390,46 @@ def delete_user(username):
     if username == 'admin':
         return "Cannot delete admin", 403
     elif username in users:
-        # Delete profile photo if exists
         if users[username].get('profile_pic'):
             photo_path = os.path.join(app.config['PROFILE_UPLOAD_FOLDER'], users[username]['profile_pic'])
             if os.path.exists(photo_path):
                 os.remove(photo_path)
         del users[username]
-        log_activity(session['username'], "Deleted User", f"Deleted user: {username}")
-    return redirect(url_for('admin_dashboard'))
+        log_activity(session['username'], "Deleted User", username)
+    return redirect(url_for('admin_dashboard', section='dashboard'))
 
-# DELETE SERVICE REQUEST
-@app.route('/delete_request/<int:request_id>')
+# DELETE REQUEST
+@app.route('/delete_request/<request_id>')
 @admin_required
 def delete_request(request_id):
     global service_requests
-    # Delete service photo if exists
     for req in service_requests:
         if req['id'] == request_id and req.get('service_photo'):
             photo_path = os.path.join(app.config['SERVICE_UPLOAD_FOLDER'], req['service_photo'])
             if os.path.exists(photo_path):
                 os.remove(photo_path)
     service_requests = [req for req in service_requests if req['id'] != request_id]
-    log_activity(session['username'], "Deleted Request", f"Deleted request #{request_id}")
-    return redirect(url_for('admin_dashboard'))
+    log_activity(session['username'], "Deleted Request", request_id)
+    return redirect(url_for('admin_dashboard', section='requests'))
 
-# HISTORY PAGE
-@app.route('/history')
+# SAVE SETTINGS
+@app.route('/save_settings', methods=['POST'])
 @admin_required
-def history():
-    return render_template('history.html', login_count=login_count, activities=activities)
+def save_settings():
+    theme = request.form.get('theme', 'light')
+    language = request.form.get('language', 'english')
+    response = make_response(redirect(url_for('admin_dashboard', section='settings')))
+    response.set_cookie('theme', theme, max_age=31536000)
+    response.set_cookie('language', language, max_age=31536000)
+    return response
 
-# SETTINGS PAGE
-@app.route('/settings')
-@admin_required
-def settings():
-    return render_template('settings.html')
-
-# MONITOR PAGE
-@app.route('/monitor')
-@admin_required
-def monitor():
-    active_users = len(session)
-    total_users = len(users)
-    return render_template('monitor.html', 
-                         active_users=active_users,
-                         total_users=total_users,
-                         users=users)
-
-# USER PROFILE PAGE
+# PROFILE PAGE
 @app.route('/profile')
 @login_required
 def profile():
     user = users.get(session['username'])
+    if not user:
+        return "User not found", 404
     user_requests = [req for req in service_requests if req['username'] == session['username']]
     return render_template('profile.html', user=user, user_requests=user_requests)
 
@@ -379,7 +445,7 @@ def logout():
 # ERROR HANDLERS
 @app.errorhandler(403)
 def forbidden(e):
-    return "<h1>403 Access Denied</h1><p>You don't have permission to access this page.</p><a href='/login'>Back to Login</a>", 403
+    return "<h1>403 Access Denied</h1><a href='/login'>Back to Login</a>", 403
 
 @app.errorhandler(404)
 def not_found(e):
