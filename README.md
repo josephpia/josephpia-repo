@@ -37,6 +37,7 @@ Before running the project, ensure you have the following installed:
 ## Installation & Setup
 
 bash
+
 # Install Flask (Web Framework)
 pip install Flask
 
