@@ -137,7 +137,7 @@ COMPANY_PAYMENT_ACCOUNTS = {
 # Service prices
 SERVICE_PRICES = {
     'Appliances Repair': 800,
-    'Plumbing Repair': 650,
+    'Plumbing Repair': 600,
     'Electrical Repair': 700,
     'Electronics Repair': 400,
     
