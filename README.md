@@ -69,9 +69,8 @@ Admin	admin	    1234
 User	(Create your own account via Sign Up)	(Your chosen password)
 
 ---
-# Module Description
 
-## Completed Modules:
+##  Modules:
 * **Module 1**: Customer Service Request
 Submit service requests with descriptions
 Upload supporting photos
