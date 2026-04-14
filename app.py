@@ -157,10 +157,10 @@ def calculate_service_amount(category):
 
 def get_payment_summary():
     """Get payment summary for admin dashboard"""
-    total_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed')
-    online_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed' and p['payment_method'] == 'online')
-    cash_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed' and p['payment_method'] == 'cash')
-    pending_verification = sum(p['amount'] for p in payments if p['status'] == 'pending_verification')
+    total_revenue = sum(p['amount'] for p in payments if p['status'] == 'paid')
+    online_revenue = sum(p['amount'] for p in payments if p['status'] == 'paid' and p['payment_method'] == 'online')
+    cash_revenue = sum(p['amount'] for p in payments if p['status'] == 'paid' and p['payment_method'] == 'cash')
+    pending_verification = sum(p['amount'] for p in payments if p['status'] == 'for_verification')
     pending_cash_total = sum(p['amount'] for p in payments if p['status'] == 'pending_cash')
     
     return {
@@ -536,7 +536,149 @@ def user_dashboard():
                          payment_method=payment_method,
                          pay_request=pay_request)
 
-# PROCESS PAYMENT
+# ===== PAYMENT ROUTES (FIXED) =====
+
+@app.route('/create_payment/<request_id>', methods=['GET'])
+@login_required
+def create_payment(request_id):
+    username = session['username']
+    service_req = None
+    for req in service_requests:
+        if req['id'] == request_id and req['username'] == username:
+            service_req = req
+            break
+    if not service_req:
+        return "Request not found", 404
+    
+    amount = calculate_service_amount(service_req.get('category', 'General Repair'))
+    return render_template('payment.html', request_id=request_id, amount=amount)
+
+
+@app.route('/process_payment_direct', methods=['POST'])
+@login_required
+def process_payment_direct():
+    global payment_id_counter
+    
+    request_id = request.form.get('request_id')
+    payment_method = request.form.get('payment_method')
+    online_app = request.form.get('online_app')
+    reference_number = request.form.get('reference_number', '')
+    amount = request.form.get('amount')
+    username = session['username']
+    
+    # Find request
+    service_req = None
+    for req in service_requests:
+        if req['id'] == request_id and req['username'] == username:
+            service_req = req
+            break
+    
+    if not service_req:
+        return "Request not found", 404
+    
+    amount_int = int(amount)
+    transaction_id = f"TXN-{username[:3].upper()}{payment_id_counter}{datetime.now().strftime('%m%d%H%M')}"
+    
+    # Create payment record - USING 'for_verification' to match admin dashboard
+    payment = {
+        'payment_id': f"PAY-{payment_id_counter}",
+        'request_id': request_id,
+        'username': username,
+        'amount': amount_int,
+        'payment_method': payment_method,
+        'online_app': online_app if payment_method == 'online' else None,
+        'reference_number': reference_number if payment_method == 'online' else None,
+        'status': 'for_verification' if payment_method == 'online' else 'pending_cash',
+        'payment_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'transaction_id': transaction_id,
+        'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    payments.append(payment)
+    payment_id_counter += 1
+    
+    # Update request
+    service_req['payment_status'] = 'for_verification' if payment_method == 'online' else 'pending_cash'
+    service_req['payment_method'] = payment_method
+    service_req['payment_amount'] = amount_int
+    service_req['payment_id'] = payment['payment_id']
+    service_req['reference_number'] = reference_number if payment_method == 'online' else None
+    
+    log_activity(username, "Payment Submitted", f"Request {request_id} - {payment_method}")
+    
+    # Show success page
+    if payment_method == 'online':
+        return render_template('success.html', 
+            icon='✅', 
+            title='Payment Submitted!', 
+            amount=amount, 
+            method=online_app, 
+            reference=reference_number, 
+            transaction=transaction_id,
+            message='⏳ Pending verification by admin. You will receive confirmation within 24 hours.')
+    else:
+        return render_template('success.html',
+            icon='💵', 
+            title='Cash Payment Selected!', 
+            amount=amount,
+            method='Cash', 
+            reference='', 
+            transaction='',
+            message='Please prepare exact amount for the technician upon arrival.')
+
+
+# ADMIN VERIFY ONLINE PAYMENT (FIXED - matches 'for_verification' status)
+@app.route('/verify_payment/<payment_id>', methods=['POST'])
+@admin_required
+def verify_payment(payment_id):
+    action = request.form.get('action', 'approve')
+    
+    for payment in payments:
+        if payment['payment_id'] == payment_id:
+            if action == 'approve':
+                payment['status'] = 'paid'
+                payment['verified_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                payment['verified_by'] = session['username']
+                
+                # Update service request
+                for req in service_requests:
+                    if req['id'] == payment['request_id']:
+                        req['payment_status'] = 'paid'
+                        break
+                
+                log_activity(session['username'], "Payment Verified", f"Payment {payment_id} approved")
+            else:
+                payment['status'] = 'rejected'
+                payment['rejected_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                payment['rejected_by'] = session['username']
+                log_activity(session['username'], "Payment Rejected", f"Payment {payment_id} rejected")
+            
+            return redirect(url_for('admin_dashboard', section='payments'))
+    
+    return redirect(url_for('admin_dashboard', section='payments', error='not_found'))
+
+
+# ADMIN CONFIRM CASH PAYMENT
+@app.route('/admin/confirm_cash_payment/<request_id>', methods=['POST'])
+@admin_required
+def confirm_cash_payment(request_id):
+    for req in service_requests:
+        if req['id'] == request_id:
+            if req.get('payment_status') == 'pending_cash':
+                req['payment_status'] = 'paid'
+                # Update payment record
+                for payment in payments:
+                    if payment['request_id'] == request_id:
+                        payment['status'] = 'paid'
+                        payment['cash_confirmed_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        payment['confirmed_by'] = session['username']
+                        break
+                log_activity(session['username'], "Cash Payment Confirmed", f"Request {request_id}")
+                return redirect(url_for('admin_dashboard', section='payments'))
+    
+    return redirect(url_for('admin_dashboard', section='payments'))
+
+# PROCESS PAYMENT (Original - keep for compatibility)
 @app.route('/process_payment', methods=['POST'])
 @login_required
 def process_payment():
@@ -576,7 +718,7 @@ def process_payment():
         'payment_method': payment_method,
         'online_app': online_app if payment_method == 'online' else None,
         'reference_number': reference_number if payment_method == 'online' else None,
-        'status': 'pending_verification' if payment_method == 'online' else 'pending_cash',
+        'status': 'for_verification' if payment_method == 'online' else 'pending_cash',
         'payment_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'transaction_id': transaction_id
     }
@@ -585,7 +727,7 @@ def process_payment():
     payment_id_counter += 1
     
     # Update service request with payment info
-    service_req['payment_status'] = 'pending_verification' if payment_method == 'online' else 'pending_cash'
+    service_req['payment_status'] = 'for_verification' if payment_method == 'online' else 'pending_cash'
     service_req['payment_method'] = payment_method
     service_req['payment_amount'] = amount
     service_req['payment_id'] = payment['payment_id']
@@ -597,47 +739,6 @@ def process_payment():
     
     # Redirect back to user dashboard with success message
     return redirect(url_for('user_dashboard', payment_success='true', amount=amount, method=payment_method))
-
-# ADMIN CONFIRM CASH PAYMENT
-@app.route('/admin/confirm_cash_payment/<request_id>', methods=['POST'])
-@admin_required
-def confirm_cash_payment(request_id):
-    for req in service_requests:
-        if req['id'] == request_id:
-            if req.get('payment_status') == 'pending_cash':
-                req['payment_status'] = 'paid'
-                # Update payment record
-                for payment in payments:
-                    if payment['request_id'] == request_id:
-                        payment['status'] = 'completed'
-                        payment['cash_confirmed_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        payment['confirmed_by'] = session['username']
-                        break
-                log_activity(session['username'], "Cash Payment Confirmed", f"Request {request_id}")
-                return redirect(url_for('admin_dashboard', section='payments'))
-    
-    return redirect(url_for('admin_dashboard', section='payments'))
-
-# ADMIN VERIFY ONLINE PAYMENT
-@app.route('/admin/verify_payment/<payment_id>', methods=['POST'])
-@admin_required
-def verify_payment(payment_id):
-    for payment in payments:
-        if payment['payment_id'] == payment_id:
-            payment['status'] = 'completed'
-            payment['verified_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            payment['verified_by'] = session['username']
-            
-            # Update service request
-            for req in service_requests:
-                if req['id'] == payment['request_id']:
-                    req['payment_status'] = 'paid'
-                    break
-            
-            log_activity(session['username'], "Payment Verified", f"Payment {payment_id}")
-            return redirect(url_for('admin_dashboard', section='payments'))
-    
-    return redirect(url_for('admin_dashboard', section='payments'))
 
 # EDIT REQUEST
 @app.route('/edit_request/<request_id>', methods=['GET', 'POST'])
