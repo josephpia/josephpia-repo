@@ -112,6 +112,66 @@ service_requests = []
 activities = []
 request_id_counter = 1000
 
+# ===== PAYMENT MANAGEMENT SYSTEM =====
+payments = []
+payment_id_counter = 1
+
+# Company payment accounts (SAME FOR ALL USERS)
+COMPANY_PAYMENT_ACCOUNTS = {
+    'gcash': {
+        'name': 'GCash',
+        'account_number': '0999-888-7777',
+        'account_name': 'ServiceHub PH'
+    },
+    'paymaya': {
+        'name': 'PayMaya',
+        'account_number': '0988-777-6666',
+        'account_name': 'ServiceHub'
+    },
+    'paypal': {
+        'name': 'PayPal',
+        'account_number': 'payments@servicehub.com',
+        'account_name': 'ServiceHub Solutions'
+    },
+    'bank_transfer': {
+        'name': 'Bank Transfer',
+        'account_number': '0045-1234-5678',
+        'account_name': 'ServiceHub Solutions Inc.',
+        'bank': 'BDO'
+    }
+}
+
+# Service prices
+SERVICE_PRICES = {
+    'Aircon Repair': 800,
+    'Plumbing': 600,
+    'Electrical': 700,
+    'Appliance Repair': 500,
+    'General Repair': 400,
+    'HVAC': 900
+}
+
+def calculate_service_amount(category):
+    """Calculate the service amount based on category"""
+    return SERVICE_PRICES.get(category, 500)
+
+def get_payment_summary():
+    """Get payment summary for admin dashboard"""
+    total_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed')
+    online_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed' and p['payment_method'] == 'online')
+    cash_revenue = sum(p['amount'] for p in payments if p['status'] == 'completed' and p['payment_method'] == 'cash')
+    pending_verification = sum(p['amount'] for p in payments if p['status'] == 'pending_verification')
+    pending_cash_total = sum(p['amount'] for p in payments if p['status'] == 'pending_cash')
+    
+    return {
+        'total_revenue': total_revenue,
+        'online_revenue': online_revenue,
+        'cash_revenue': cash_revenue,
+        'pending_verification': pending_verification,
+        'pending_cash_total': pending_cash_total,
+        'total_transactions': len(payments)
+    }
+
 # ===== HELPER FUNCTIONS =====
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -448,7 +508,10 @@ def user_dashboard():
                 "technician_id": None,
                 "technician_name": None,
                 "technician_specialty": None,
-                "technician_assigned_date": None
+                "technician_assigned_date": None,
+                "payment_status": "unpaid",
+                "payment_method": None,
+                "payment_amount": None
             })
             users[session['username']]['total_requests'] = users[session['username']].get('total_requests', 0) + 1
             service_message = "Service request submitted!"
@@ -456,11 +519,125 @@ def user_dashboard():
 
     user_requests = [req for req in service_requests if req['username'] == session['username']]
     
+    # Check for payment success message
+    payment_success = request.args.get('payment_success')
+    payment_amount = request.args.get('amount')
+    payment_method = request.args.get('method')
+    pay_request = request.args.get('pay_request')
+    
     return render_template('userdashboard.html', 
                          profile_message=profile_message,
                          service_message=service_message,
                          user_requests=user_requests,
-                         user=users.get(session['username'], {}))
+                         user=users.get(session['username'], {}),
+                         calculate_service_amount=calculate_service_amount,
+                         payment_success=payment_success,
+                         payment_amount=payment_amount,
+                         payment_method=payment_method,
+                         pay_request=pay_request)
+
+# PROCESS PAYMENT
+@app.route('/process_payment', methods=['POST'])
+@login_required
+def process_payment():
+    global payment_id_counter
+    
+    request_id = request.form.get('request_id')
+    payment_method = request.form.get('payment_method')
+    online_app = request.form.get('online_app', None)
+    reference_number = request.form.get('reference_number', '')
+    username = session['username']
+    
+    # Find the service request
+    service_req = None
+    for req in service_requests:
+        if req['id'] == request_id and req['username'] == username:
+            service_req = req
+            break
+    
+    if not service_req:
+        return "Request not found", 404
+    
+    if service_req.get('payment_status') == 'paid':
+        return "Already paid", 400
+    
+    # Calculate amount
+    amount = calculate_service_amount(service_req.get('category', 'General Repair'))
+    
+    # Create unique transaction ID
+    transaction_id = f"TXN-{username[:3].upper()}{payment_id_counter}{datetime.now().strftime('%m%d%H%M')}"
+    
+    # Create payment record
+    payment = {
+        'payment_id': f"PAY-{payment_id_counter}",
+        'request_id': request_id,
+        'username': username,
+        'amount': amount,
+        'payment_method': payment_method,
+        'online_app': online_app if payment_method == 'online' else None,
+        'reference_number': reference_number if payment_method == 'online' else None,
+        'status': 'pending_verification' if payment_method == 'online' else 'pending_cash',
+        'payment_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'transaction_id': transaction_id
+    }
+    
+    payments.append(payment)
+    payment_id_counter += 1
+    
+    # Update service request with payment info
+    service_req['payment_status'] = 'pending_verification' if payment_method == 'online' else 'pending_cash'
+    service_req['payment_method'] = payment_method
+    service_req['payment_amount'] = amount
+    service_req['payment_id'] = payment['payment_id']
+    service_req['transaction_id'] = transaction_id
+    if payment_method == 'online':
+        service_req['reference_number'] = reference_number
+    
+    log_activity(username, "Payment Submitted", f"Request {request_id} - {payment_method} - TXN: {transaction_id}")
+    
+    # Redirect back to user dashboard with success message
+    return redirect(url_for('user_dashboard', payment_success='true', amount=amount, method=payment_method))
+
+# ADMIN CONFIRM CASH PAYMENT
+@app.route('/admin/confirm_cash_payment/<request_id>', methods=['POST'])
+@admin_required
+def confirm_cash_payment(request_id):
+    for req in service_requests:
+        if req['id'] == request_id:
+            if req.get('payment_status') == 'pending_cash':
+                req['payment_status'] = 'paid'
+                # Update payment record
+                for payment in payments:
+                    if payment['request_id'] == request_id:
+                        payment['status'] = 'completed'
+                        payment['cash_confirmed_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        payment['confirmed_by'] = session['username']
+                        break
+                log_activity(session['username'], "Cash Payment Confirmed", f"Request {request_id}")
+                return redirect(url_for('admin_dashboard', section='payments'))
+    
+    return redirect(url_for('admin_dashboard', section='payments'))
+
+# ADMIN VERIFY ONLINE PAYMENT
+@app.route('/admin/verify_payment/<payment_id>', methods=['POST'])
+@admin_required
+def verify_payment(payment_id):
+    for payment in payments:
+        if payment['payment_id'] == payment_id:
+            payment['status'] = 'completed'
+            payment['verified_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            payment['verified_by'] = session['username']
+            
+            # Update service request
+            for req in service_requests:
+                if req['id'] == payment['request_id']:
+                    req['payment_status'] = 'paid'
+                    break
+            
+            log_activity(session['username'], "Payment Verified", f"Payment {payment_id}")
+            return redirect(url_for('admin_dashboard', section='payments'))
+    
+    return redirect(url_for('admin_dashboard', section='payments'))
 
 # EDIT REQUEST
 @app.route('/edit_request/<request_id>', methods=['GET', 'POST'])
@@ -591,6 +768,9 @@ def admin_dashboard():
     language = request.cookies.get('language', 'english')
     total_revenue = sum(revenue_data)
     
+    # Get payment summary
+    payment_summary = get_payment_summary()
+    
     return render_template(
         'admindashboard.html',
         section=section,
@@ -617,7 +797,10 @@ def admin_dashboard():
         theme=theme,
         language=language,
         login_count=login_count,
-        activities=activities[-10:]
+        activities=activities[-10:],
+        payment_summary=payment_summary,
+        payments=payments,
+        calculate_service_amount=calculate_service_amount
     )
 
 # UPDATE REQUEST STATUS
