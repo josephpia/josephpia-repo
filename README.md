@@ -74,22 +74,22 @@ Use the following credentials to access the system:
 
 ##  Modules:
 * **Module 1**: Customer Service Request
-Submit service requests with descriptions
-Upload supporting photos
-Submit Service Request
-Display Existing Service Request
-Edit the Description(Available if not already Approved by the admin)
-Track request status (pendeng, on-going, completed)
+* Submit service requests with descriptions
+* Upload supporting photos
+* Submit Service Request
+* Display Existing Service Request
+* Edit the Description(Available if not already Approved by the admin)
+* Track request status (pendeng, on-going, completed)
 
 
 * **Module 2**: Technician Assignment
-View technician list and specialties
-Assign technicians to job orders
-Update technician status
-Auto-unassign on completion
+* View technician list and specialties
+* Assign technicians to job orders
+* Update technician status
+* Auto-unassign on completion
 
 * **Module 3**: Payment Processing
-Multiple payment method support
-QR code generation for digital payments
-Receipt upload and verification
-Wallet system for balance payments
+* Multiple payment method support
+* QR code generation for digital payments
+* Receipt upload and verification
+* Wallet system for balance payments
