@@ -5,23 +5,34 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .payment-container { max-width: 550px; margin: 50px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .payment-container { max-width: 600px; margin: 50px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
         .payment-header { background: linear-gradient(135deg, #1f2937, #111827); color: white; padding: 25px; text-align: center; }
         .payment-body { padding: 30px; }
         .bill-summary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; }
         .bill-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
         .bill-total { display: flex; justify-content: space-between; padding: 15px 0 0; font-size: 20px; font-weight: bold; border-top: 2px solid rgba(255,255,255,0.3); }
         .payment-method { border: 2px solid #e5e7eb; border-radius: 12px; padding: 15px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s; }
+        .payment-method:hover { border-color: #10b981; background: #f0fdf4; }
         .payment-method.selected { border-color: #10b981; background: #f0fdf4; }
         .online-apps { margin-left: 30px; display: none; }
         .online-apps.show { display: block; }
         .online-app { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        .online-app:hover { background: #f9fafb; transform: translateX(5px); }
         .online-app.selected { border-color: #10b981; background: #f0fdf4; }
+        .qr-container { text-align: center; margin: 15px 0; padding: 15px; background: #f9fafb; border-radius: 10px; display: none; }
+        .qr-container.show { display: block; }
+        .qr-code { margin: 10px auto; max-width: 200px; }
+        .qr-code img { width: 100%; height: auto; border-radius: 10px; }
+        .payment-details { font-size: 12px; color: #6b7280; margin-top: 10px; }
         .verification-box { background: #fef3c7; padding: 15px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #f59e0b; }
         .verification-box input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; margin-top: 10px; }
         .btn-submit { width: 100%; padding: 15px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-back { display: block; text-align: center; margin-top: 15px; padding: 12px; background: #6b7280; color: white; text-decoration: none; border-radius: 8px; }
+        .account-info { background: #eef2ff; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 13px; }
+        .copy-btn { background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 10px; }
+        .copy-btn:hover { background: #5a67d8; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
     </style>
 </head>
 <body>
@@ -38,27 +49,82 @@
                 <div class="bill-total"><span>TOTAL</span><span>₱{{ amount }}</span></div>
             </div>
             
-            <form method="POST" action="/process_payment_direct">
+            <form method="POST" action="/process_payment_direct" id="paymentForm">
                 <input type="hidden" name="request_id" value="{{ request_id }}">
                 <input type="hidden" name="amount" value="{{ amount }}">
                 
-                <div class="payment-method" id="onlineMethod" onclick="selectOnline()">
-                    <div><strong>💻 Online Payment</strong><small> GCash, PayMaya, PayPal, Bank Transfer</small></div>
+                <h3>Select Payment Method</h3>
+                
+                <!-- GCash -->
+                <div class="payment-method" onclick="selectPaymentMethod('GCash')" id="methodGCash">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">📱</span>
+                        <div>
+                            <strong>GCash</strong>
+                            <p style="font-size: 12px; color: #6b7280;">Send to: 0999-888-7777</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="onlineApps" class="online-apps">
-                    <div class="online-app" onclick="selectApp('GCash')">📱 GCash - 0999-888-7777</div>
-                    <div class="online-app" onclick="selectApp('PayMaya')">💳 PayMaya - 0988-777-6666</div>
-                    <div class="online-app" onclick="selectApp('PayPal')">🌐 PayPal - payments@servicehub.com</div>
-                    <div class="online-app" onclick="selectApp('Bank Transfer')">🏦 Bank Transfer - BDO 0045-1234-5678</div>
+                <!-- PayMaya -->
+                <div class="payment-method" onclick="selectPaymentMethod('PayMaya')" id="methodPayMaya">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">💳</span>
+                        <div>
+                            <strong>PayMaya</strong>
+                            <p style="font-size: 12px; color: #6b7280;">Send to: 0988-777-6666</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="payment-method" id="cashMethod" onclick="selectCash()">
-                    <div><strong>💵 Cash Payment</strong><small> Pay upon technician arrival</small></div>
+                <!-- PayPal -->
+                <div class="payment-method" onclick="selectPaymentMethod('PayPal')" id="methodPayPal">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">🌐</span>
+                        <div>
+                            <strong>PayPal</strong>
+                            <p style="font-size: 12px; color: #6b7280;">Send to: payments@servicehub.com</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="verificationBox" class="verification-box" style="display:none">
-                    <strong>🔐 Reference Number</strong>
+                <!-- Bank Transfer -->
+                <div class="payment-method" onclick="selectPaymentMethod('Bank Transfer')" id="methodBank">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">🏦</span>
+                        <div>
+                            <strong>Bank Transfer</strong>
+                            <p style="font-size: 12px; color: #6b7280;">BDO: 0045-1234-5678</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cash Payment -->
+                <div class="payment-method" onclick="selectCash()" id="methodCash">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">💵</span>
+                        <div>
+                            <strong>Cash Payment</strong>
+                            <p style="font-size: 12px; color: #6b7280;">Pay upon technician arrival</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- QR Code Display -->
+                <div id="qrContainer" class="qr-container">
+                    <h4>📱 Scan QR Code to Pay</h4>
+                    <div id="qrCode" class="qr-code"></div>
+                    <div id="accountDetails" class="account-info"></div>
+                    <div class="payment-details">
+                        <p><strong>Amount:</strong> ₱{{ amount }}</p>
+                        <p><strong>Reference:</strong> {{ request_id }}</p>
+                    </div>
+                </div>
+                
+                <!-- Verification Section -->
+                <div id="verificationBox" class="verification-box" style="display: none;">
+                    <strong>🔐 Payment Verification</strong>
+                    <p style="font-size: 12px; margin-top: 5px;">After sending payment, enter the reference number:</p>
                     <input type="text" name="reference_number" id="referenceNumber" placeholder="Enter transaction reference number">
                 </div>
                 
@@ -66,34 +132,95 @@
                 <input type="hidden" name="online_app" id="onlineAppInput">
                 
                 <button type="submit" class="btn-submit" id="submitBtn" disabled>✅ Submit Payment</button>
-                <a href="/userdashboard" class="btn-back">← Back</a>
+                <a href="/userdashboard" class="btn-back">← Back to Dashboard</a>
             </form>
         </div>
     </div>
     
     <script>
-        function selectOnline() {
-            document.getElementById('onlineMethod').classList.add('selected');
-            document.getElementById('cashMethod').classList.remove('selected');
-            document.getElementById('onlineApps').classList.add('show');
-            document.getElementById('verificationBox').style.display = 'block';
+        let selectedApp = null;
+        
+        function selectPaymentMethod(app) {
+            selectedApp = app;
+            
+            // Remove selected class from all methods
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+            document.getElementById('method' + app.replace(' ', '')).classList.add('selected');
+            document.getElementById('methodCash').classList.remove('selected');
+            
+            // Set form values
             document.getElementById('paymentMethodInput').value = 'online';
+            document.getElementById('onlineAppInput').value = app;
+            document.getElementById('verificationBox').style.display = 'block';
+            
+            // Show QR container
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.classList.add('show');
+            
+            // Generate QR code
+            generateQRCode(app);
+            
+            // Enable submit button when reference is entered
+            const refInput = document.getElementById('referenceNumber');
+            refInput.value = '';
+            refInput.oninput = function() {
+                document.getElementById('submitBtn').disabled = this.value.trim() === '';
+            };
             document.getElementById('submitBtn').disabled = true;
         }
+        
         function selectCash() {
-            document.getElementById('cashMethod').classList.add('selected');
-            document.getElementById('onlineMethod').classList.remove('selected');
-            document.getElementById('onlineApps').classList.remove('show');
-            document.getElementById('verificationBox').style.display = 'none';
+            selectedApp = null;
+            
+            // Remove selected class from all methods
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+            document.getElementById('methodCash').classList.add('selected');
+            
+            // Set form values
             document.getElementById('paymentMethodInput').value = 'cash';
+            document.getElementById('onlineAppInput').value = '';
+            document.getElementById('verificationBox').style.display = 'none';
+            document.getElementById('qrContainer').classList.remove('show');
             document.getElementById('submitBtn').disabled = false;
         }
-        function selectApp(app) {
-            document.querySelectorAll('.online-app').forEach(el => el.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
-            document.getElementById('onlineAppInput').value = app;
-            let ref = document.getElementById('referenceNumber');
-            ref.oninput = function() { document.getElementById('submitBtn').disabled = !this.value.trim(); };
+        
+        function generateQRCode(app) {
+            const amount = '{{ amount }}';
+            const requestId = '{{ request_id }}';
+            
+            // Show loading
+            document.getElementById('qrCode').innerHTML = '<div class="loading">Generating QR Code...</div>';
+            
+            // Fetch QR code from server
+            fetch(`/generate_qr/${app}/${amount}/${requestId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.qr_code) {
+                        document.getElementById('qrCode').innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code">`;
+                        
+                        // Show account details
+                        let accountHtml = '';
+                        if (app === 'GCash') {
+                            accountHtml = '<strong>📱 GCash Account:</strong> 0999-888-7777 (ServiceHub PH)<br><button class="copy-btn" onclick="copyToClipboard(\'0999-888-7777\')">Copy Number</button>';
+                        } else if (app === 'PayMaya') {
+                            accountHtml = '<strong>💳 PayMaya Account:</strong> 0988-777-6666 (ServiceHub)<br><button class="copy-btn" onclick="copyToClipboard(\'0988-777-6666\')">Copy Number</button>';
+                        } else if (app === 'PayPal') {
+                            accountHtml = '<strong>🌐 PayPal Email:</strong> payments@servicehub.com<br><button class="copy-btn" onclick="copyToClipboard(\'payments@servicehub.com\')">Copy Email</button>';
+                        } else if (app === 'Bank Transfer') {
+                            accountHtml = '<strong>🏦 Bank Transfer Details:</strong><br>Bank: BDO<br>Account: 0045-1234-5678<br>Name: ServiceHub Solutions Inc.<br><button class="copy-btn" onclick="copyToClipboard(\'0045-1234-5678\')">Copy Account</button>';
+                        }
+                        document.getElementById('accountDetails').innerHTML = accountHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('qrCode').innerHTML = '<div style="color: red;">Failed to generate QR code</div>';
+                });
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert('Copied: ' + text);
         }
     </script>
 </body>

@@ -484,15 +484,16 @@
                             </td>
                             <td>{{ req.technician_name|default('—') }}</td>
                             <td>
-                                <form method="POST" action="/update_request/{{ req.id }}" style="display: inline;">
-                                    <select name="status">
-                                        <option value="pending" {% if req.status == 'pending' %}selected{% endif %}>Pending</option>
-                                        <option value="ongoing" {% if req.status == 'ongoing' %}selected{% endif %}>On-Going</option>
+                                 <form method="POST" action="/update_request/{{ req.id }}" style="display: inline-block; width: 100%;">
+                                     <select name="status" style="margin-bottom: 5px;">
+                                      <option value="pending" {% if req.status == 'pending' %}selected{% endif %}>Pending</option>
+                                       <option value="ongoing" {% if req.status == 'ongoing' %}selected{% endif %}>On-Going</option>
                                         <option value="completed" {% if req.status == 'completed' %}selected{% endif %}>Completed</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary">Update</button>
-                                </form>
-                                <a href="/delete_request/{{ req.id }}" class="btn btn-danger" onclick="return confirm('Delete?')">Delete</a>
+                                         </select>
+                                         <input type="text" name="notes" placeholder="Add admin note..." style="width: 100%; margin: 5px 0; padding: 5px;" value="{{ req.admin_notes|default('') }}">
+                                      <button type="submit" class="btn btn-primary" style="width: 100%;">Update</button>
+                                  </form>
+                              <a href="/delete_request/{{ req.id }}" class="btn btn-danger" onclick="return confirm('Delete?')" style="display: block; text-align: center; margin-top: 5px;">Delete</a>
                             </td>
                         </tr>
                         {% endfor %}

@@ -79,7 +79,7 @@ Upload supporting photos
 Submit Service Request
 Display Existing Service Request
 Edit the Description(Available if not already Approved by the admin)
-Track request status (pendeng, on-going, completed)
+Track request status (pending, on-going, completed)
 
 
 * **Module 2**: Technician Assignment
