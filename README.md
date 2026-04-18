@@ -3,7 +3,7 @@
 ## Title Description
 CSR-JOTS is a comprehensive web-based system that records customer concerns, assigns technicians to specific job orders, and tracks the progress of each service request. It helps service centers improve workflow efficiency, monitor job status accurately, and ensure timely resolution of customer requests through organized and systematical tracking.
 
-**Version:**1.0
+##Version:1.0
 
 ---
 
@@ -34,12 +34,16 @@ Before running the project, ensure you have the following installed:
 * **Python:** Version 3.8 or higher
 * **RAM:** Minimum 2GB (recommended 4GB)
 
+---
+
 ## Required Software
 
 * **Python 3.1.3** (`python --version`)
 * **Pip** (Python package manager)
 * **Code Editor** (VS Code recommended)
 * **Modern Web Browser** (Chrome, Edge, or Brave)
+
+---
 
 ## Python Libraries (Installed via pip)
 
@@ -230,3 +234,9 @@ Admin Account:
 **3.View Payment Status**(After Processing the Payment Method,)
  * Click "Back to Dashboard" botton
  * View payment status(cash pending, gcash pending, etc..)
+
+* **Module 4: Service History & Reporting**
+  *
+
+## Issue: "Data disappears after restart"
+Normal Behavior: In-memory database resets on app restart.
