@@ -3,7 +3,12 @@
 ## Title Description
 CSR-JOTS is a comprehensive web-based system that records customer concerns, assigns technicians to specific job orders, and tracks the progress of each service request. It helps service centers improve workflow efficiency, monitor job status accurately, and ensure timely resolution of customer requests through organized and systematical tracking.
 
+<<<<<<< HEAD
 ## Version: 1.0
+=======
+## Version:1.0
+
+>>>>>>> 6120d39608cd16139abd1d40e495e9f928bf4995
 ---
 
 ## 👥 Developers (BSCS-1B)
@@ -240,6 +245,3 @@ Admin Account:
 ## Issue: "Data disappears after restart"
 <<<<<<< HEAD
 Normal Behavior: In-memory database resets on app restart.
-=======
-Normal Behavior: In-memory database resets on app restart.
->>>>>>> dae7930c7ff06d679b8dfecf13f34b6dad6ce4ba
