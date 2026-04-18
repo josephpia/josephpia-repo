@@ -238,4 +238,8 @@ Admin Account:
   *
 
 ## Issue: "Data disappears after restart"
+<<<<<<< HEAD
 Normal Behavior: In-memory database resets on app restart.
+=======
+Normal Behavior: In-memory database resets on app restart.
+>>>>>>> dae7930c7ff06d679b8dfecf13f34b6dad6ce4ba
