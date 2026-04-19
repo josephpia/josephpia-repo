@@ -452,49 +452,61 @@
             </div>
         </div>
 
-        <!-- SERVICE REQUESTS SECTION -->
+        <!-- SERVICE REQUESTS SECTION - FIXED PHOTO VIEWING -->
         <div class="section {% if section == 'requests' %}active{% endif %}">
             <div class="data-table">
                 <h3><i class="fas fa-list-ul"></i> All Service Requests</h3>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Customer</th><th>Request</th><th>Photo</th><th>Status</th><th>Payment</th><th>Technician</th><th>Actions</th></tr>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Request</th>
+                            <th>Photo</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Technician</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for req in service_requests %}
                         <tr>
-                            <td>{{ req.id }}</td>
-                            <td>{{ req.username }}</td>
-                            <td style="max-width:200px;">{{ req.service[:50] }}{% if req.service|length > 50 %}...{% endif %}</td>
-                            <td>
-                                {% if req.service_photo %}
-                                    <img src="{{ url_for('view_service_photo', request_id=req.id) }}" class="photo-thumb" onclick="showPhoto(this.src)">
-                                {% else %}—{% endif %}
-                            </td>
+                            <td>{{ req.id }}</strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong> </div>
+                            <td>{{ req.username }}</strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong> </div>
+                            <td style="max-width:200px;">{{ req.service[:50] }}{% if req.service|length > 50 %}...{% endif %}</strong> </div>
+                            <!-- FIXED PHOTO COLUMN - Uses Cloudinary URL directly -->
+                            <td style="text-align: center;">
+                                {% if req.service_photo_url %}
+                                    <img src="{{ req.service_photo_url }}" class="photo-thumb" onclick="window.open('{{ req.service_photo_url }}')" style="cursor: pointer;">
+                                {% else %}
+                                    <span style="color: #9ca3af;">—</span>
+                                {% endif %}
+                            </strong> </div>
                             <td>
                                 {% if req.status == 'pending' %}<span class="badge badge-pending">Pending</span>
                                 {% elif req.status == 'ongoing' %}<span class="badge badge-ongoing">On-Going</span>
                                 {% else %}<span class="badge badge-completed">Completed</span>{% endif %}
-                            </td>
+                            </strong> </div>
                             <td>
                                 {% if req.payment_status == 'paid' %}<span class="badge badge-paid">✅ Paid</span>
                                 {% elif req.payment_status == 'for_verification' %}<span class="badge badge-verification">🔍 For Verification</span>
                                 {% elif req.payment_status == 'pending_cash' %}<span class="badge badge-pending">💰 Pending Cash</span>
                                 {% else %}<span class="badge badge-pending">⏳ Unpaid</span>{% endif %}
-                            </td>
-                            <td>{{ req.technician_name|default('—') }}</td>
+                            </strong> </div>
+                            <td>{{ req.technician_name|default('—') }}</strong> </div>
                             <td>
                                  <form method="POST" action="/update_request/{{ req.id }}" style="display: inline-block; width: 100%;">
                                      <select name="status" style="margin-bottom: 5px;">
                                       <option value="pending" {% if req.status == 'pending' %}selected{% endif %}>Pending</option>
                                        <option value="ongoing" {% if req.status == 'ongoing' %}selected{% endif %}>On-Going</option>
                                         <option value="completed" {% if req.status == 'completed' %}selected{% endif %}>Completed</option>
-                                         </select>
-                                         <input type="text" name="notes" placeholder="Add admin note..." style="width: 100%; margin: 5px 0; padding: 5px;" value="{{ req.admin_notes|default('') }}">
-                                      <button type="submit" class="btn btn-primary" style="width: 100%;">Update</button>
-                                  </form>
-                              <a href="/delete_request/{{ req.id }}" class="btn btn-danger" onclick="return confirm('Delete?')" style="display: block; text-align: center; margin-top: 5px;">Delete</a>
-                            </td>
+                                     </select>
+                                     <input type="text" name="notes" placeholder="Add admin note..." style="width: 100%; margin: 5px 0; padding: 5px;" value="{{ req.admin_notes|default('') }}">
+                                     <button type="submit" class="btn btn-primary" style="width: 100%;">Update</button>
+                                 </form>
+                                 <a href="/delete_request/{{ req.id }}" class="btn btn-danger" onclick="return confirm('Delete?')" style="display: block; text-align: center; margin-top: 5px;">Delete</a>
+                            </strong> </div>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -510,52 +522,131 @@
                 <h3><i class="fas fa-hourglass-half"></i> Online Payments Awaiting Verification</h3>
                 {% if verification_payments %}
                 <table>
-                    <thead><tr><th>Payment ID</th><th>User</th><th>Request</th><th>Amount</th><th>Method</th><th>Ref</th><th>Date</th><th>Actions</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>User</th>
+                            <th>Request</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Ref</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {% for p in verification_payments %}
                         <tr style="background: rgba(245,158,11,0.03);">
-                            <td><code>{{ p.payment_id }}</code></td><td>{{ p.username }}</td><td>{{ p.request_id }}</td>
+                            <td><code>{{ p.payment_id }}</code></td>
+                            <td>{{ p.username }}</td>
+                            <td>{{ p.request_id }}</td>
                             <td><strong>₱{{ p.amount }}</strong></td>
                             <td>{% if p.online_app %}📱 {{ p.online_app }}{% else %}💻 Online{% endif %}</td>
-                            <td>{{ p.reference_number|default('—') }}</td><td>{{ p.payment_date[:10] }}</td>
+                            <td>{{ p.reference_number|default('—') }}</td>
+                            <td>{{ p.payment_date[:10] }}</td>
                             <td>
                                 <form method="POST" action="/verify_payment/{{ p.payment_id }}" style="display:inline;" onsubmit="return confirm('Verify?')">
-                                    <input type="hidden" name="action" value="approve"><button class="btn btn-success">✅ Verify</button>
+                                    <input type="hidden" name="action" value="approve">
+                                    <button class="btn btn-success">✅ Verify</button>
                                 </form>
                                 <form method="POST" action="/verify_payment/{{ p.payment_id }}" style="display:inline;" onsubmit="return confirm('Reject?')">
-                                    <input type="hidden" name="action" value="reject"><button class="btn btn-danger">❌ Reject</button>
+                                    <input type="hidden" name="action" value="reject">
+                                    <button class="btn btn-danger">❌ Reject</button>
                                 </form>
-                            </td>
-                        </tr>{% endfor %}
+                            </strong> </div>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
-                {% else %}<p style="padding:30px; text-align:center;">✨ No payments awaiting verification</p>{% endif %}
+                {% else %}
+                <p style="padding:30px; text-align:center;">✨ No payments awaiting verification</p>
+                {% endif %}
             </div>
+
             {% set pending_cash = [] %}
             {% for req in service_requests %}{% if req.payment_status == 'pending_cash' %}{% set _ = pending_cash.append(req) %}{% endif %}{% endfor %}
             <div class="data-table">
                 <h3><i class="fas fa-money-bill-wave"></i> Pending Cash Payments</h3>
                 {% if pending_cash %}
-                <table><thead><tr><th>Req ID</th><th>Customer</th><th>Service</th><th>Amount</th><th>Date</th><th>Technician</th><th>Action</th></tr></thead>
-                <tbody>{% for req in pending_cash %}
-                    <tr><td>{{ req.id }}</td><td>{{ req.username }}</td><td>{{ req.service[:50] }}...</td>
-                        <td><strong>₱{{ calculate_service_amount(req.category) }}</strong></td><td>{{ req.date_requested[:10] }}</td>
-                        <td>{{ req.technician_name|default('Not assigned') }}</td>
-                        <td><form method="POST" action="/admin/confirm_cash_payment/{{ req.id }}" onsubmit="return confirm('Confirm cash?')"><button class="btn btn-success">💰 Confirm</button></form></td>
-                    </tr>{% endfor %}
-                </tbody></table>{% else %}<p style="padding:30px;">No pending cash payments</p>{% endif %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Req ID</th>
+                            <th>Customer</th>
+                            <th>Service</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Technician</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_cash %}
+                        <tr>
+                            <td>{{ req.id }}</strong> </div>
+                            <td>{{ req.username }}</strong> </div>
+                            <td>{{ req.service[:50] }}...</strong> </div>
+                            <td><strong>₱{{ calculate_service_amount(req.category) }}</strong></strong> </div>
+                            <td>{{ req.date_requested[:10] }}</strong> </div>
+                            <td>{{ req.technician_name|default('Not assigned') }}</strong> </div>
+                            <td>
+                                <form method="POST" action="/admin/confirm_cash_payment/{{ req.id }}" onsubmit="return confirm('Confirm cash?')">
+                                    <button class="btn btn-success">💰 Confirm</button>
+                                </form>
+                            </strong> </div>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="padding:30px;">No pending cash payments</p>
+                {% endif %}
             </div>
+
             <div class="data-table">
                 <h3><i class="fas fa-history"></i> All Transactions</h3>
                 {% if payments %}
-                <table><thead><tr><th>Payment ID</th><th>User</th><th>Request</th><th>Amount</th><th>Method</th><th>Status</th><th>Verified By</th><th>Date</th></tr></thead>
-                <tbody>{% for p in payments|reverse %}
-                    <tr><td><code>{{ p.payment_id }}</code></td><td>{{ p.username }}</td><td>{{ p.request_id }}</td><td>₱{{ p.amount }}</td>
-                        <td>{% if p.payment_method == 'online' %}{% if p.online_app %}📱 {{ p.online_app }}{% else %}💻 Online{% endif %}{% else %}💵 Cash{% endif %}</td>
-                        <td>{% if p.status == 'paid' %}<span class="badge badge-paid">Paid</span>{% elif p.status == 'for_verification' %}<span class="badge badge-verification">Verification</span>{% elif p.status == 'pending_cash' %}<span class="badge badge-pending">Pending cash</span>{% elif p.status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>{% else %}{{ p.status }}{% endif %}</td>
-                        <td>{{ p.verified_by|default('—') }}</td><td>{{ p.payment_date[:10] }}</td>
-                    </tr>{% endfor %}
-                </tbody></table>{% else %}<p>No transactions</p>{% endif %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>User</th>
+                            <th>Request</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Verified By</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments|reverse %}
+                        <tr>
+                            <td><code>{{ p.payment_id }}</code></td>
+                            <td>{{ p.username }}</td>
+                            <td>{{ p.request_id }}</td>
+                            <td>₱{{ p.amount }}</td>
+                            <td>
+                                {% if p.payment_method == 'online' %}
+                                    {% if p.online_app %}📱 {{ p.online_app }}{% else %}💻 Online{% endif %}
+                                {% else %}💵 Cash{% endif %}
+                            </strong> </div>
+                            <td>
+                                {% if p.status == 'paid' %}<span class="badge badge-paid">Paid</span>
+                                {% elif p.status == 'for_verification' %}<span class="badge badge-verification">Verification</span>
+                                {% elif p.status == 'pending_cash' %}<span class="badge badge-pending">Pending cash</span>
+                                {% elif p.status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+                                {% else %}{{ p.status }}{% endif %}
+                            </strong> </div>
+                            <td>{{ p.verified_by|default('—') }}</strong> </div>
+                            <td>{{ p.payment_date[:10] }}</strong> </div>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No transactions</p>
+                {% endif %}
             </div>
         </div>
 
@@ -581,16 +672,41 @@
             </div>
             <div class="data-table">
                 <h3><i class="fas fa-hard-hat"></i> Technicians List</h3>
-                <table><thead><tr><th>ID</th><th>Name</th><th>Specialty</th><th>Status</th><th>Contact</th><th>Assigned</th><th>Actions</th></tr></thead>
-                <tbody>{% for tech in technicians %}
-                    <tr><td>{{ tech.id }}</td><td><strong>{{ tech.name }}</strong></td><td>{{ tech.specialty }}</td>
-                        <td>{% if tech.status == 'available' %}<span class="badge badge-available">🟢 Available</span>{% else %}<span class="badge badge-busy">🔴 Busy</span>{% endif %}</td>
-                        <td>{{ tech.contact }}</td><td>{{ tech.assigned_requests|length }}</td>
-                        <td><button class="btn btn-primary" onclick="openAssignModal({{ tech.id }}, '{{ tech.name }}', '{{ tech.specialty }}')">📋 Assign</button>
-                            <a href="/delete_technician/{{ tech.id }}" class="btn btn-danger" onclick="return confirm('Delete?')">Delete</a>
-                        </td>
-                    </tr>{% endfor %}
-                </tbody></table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Specialty</th>
+                            <th>Status</th>
+                            <th>Contact</th>
+                            <th>Assigned</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tech in technicians %}
+                        <tr>
+                            <td>{{ tech.id }}</strong> </div>
+                            <td><strong>{{ tech.name }}</strong></strong> </div>
+                            <td>{{ tech.specialty }}</strong> </div>
+                            <td>
+                                {% if tech.status == 'available' %}
+                                    <span class="badge badge-available">🟢 Available</span>
+                                {% else %}
+                                    <span class="badge badge-busy">🔴 Busy</span>
+                                {% endif %}
+                            </strong> </div>
+                            <td>{{ tech.contact }}</strong> </div>
+                            <td>{{ tech.assigned_requests|length }}</strong> </div>
+                            <td>
+                                <button class="btn btn-primary" onclick="openAssignModal({{ tech.id }}, '{{ tech.name }}', '{{ tech.specialty }}')">📋 Assign</button>
+                                <a href="/delete_technician/{{ tech.id }}" class="btn btn-danger" onclick="return confirm('Delete?')">Delete</a>
+                            </strong> </div>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -599,11 +715,19 @@
             <div class="data-table">
                 <h3><i class="fas fa-cog"></i> Preferences</h3>
                 <form method="POST" action="/save_settings">
-                    <div style="margin:20px 0;"><label>Theme:</label>
-                        <select name="theme"><option value="light" {% if theme=='light' %}selected{% endif %}>Light</option><option value="dark" {% if theme=='dark' %}selected{% endif %}>Dark</option></select>
+                    <div style="margin:20px 0;">
+                        <label>Theme:</label>
+                        <select name="theme">
+                            <option value="light" {% if theme=='light' %}selected{% endif %}>Light</option>
+                            <option value="dark" {% if theme=='dark' %}selected{% endif %}>Dark</option>
+                        </select>
                     </div>
-                    <div style="margin:20px 0;"><label>Language:</label>
-                        <select name="language"><option value="english" {% if language=='english' %}selected{% endif %}>English</option><option value="tagalog" {% if language=='tagalog' %}selected{% endif %}>Tagalog</option></select>
+                    <div style="margin:20px 0;">
+                        <label>Language:</label>
+                        <select name="language">
+                            <option value="english" {% if language=='english' %}selected{% endif %}>English</option>
+                            <option value="tagalog" {% if language=='tagalog' %}selected{% endif %}>Tagalog</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Settings</button>
                 </form>
@@ -612,17 +736,20 @@
     </div>
 </div>
 
-<!-- MODALS (unchanged functionality) -->
+<!-- MODALS -->
 <div id="assignModal" class="modal">
     <div class="modal-content">
         <h3>📋 Assign Technician</h3>
-        <div id="techInfo" style="margin:15px 0;"><strong>Technician:</strong> <span id="techName"></span> (<span id="techSpecialty"></span>)</div>
+        <div id="techInfo" style="margin:15px 0;">
+            <strong>Technician:</strong> <span id="techName"></span> (<span id="techSpecialty"></span>)
+        </div>
         <div id="requestList">Loading...</div>
         <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
             <button class="btn btn-danger" onclick="closeAssignModal()">Cancel</button>
         </div>
     </div>
 </div>
+
 <div id="photoModal" class="modal" onclick="closePhotoModal()">
     <span style="position:absolute; top:20px; right:40px; color:white; font-size:40px; cursor:pointer;">&times;</span>
     <img class="modal-content" id="modalImage" style="margin:auto; display:block; max-width:90%; max-height:90%; margin-top:50px;">
@@ -630,25 +757,67 @@
 
 <script>
     let currentTechId = null;
-    function showPhoto(src){ document.getElementById('photoModal').style.display='block'; document.getElementById('modalImage').src=src; }
-    function closePhotoModal(){ document.getElementById('photoModal').style.display='none'; }
-    function openAssignModal(id,name,spec){
-        currentTechId=id; document.getElementById('techName').innerText=name; document.getElementById('techSpecialty').innerText=spec;
-        document.getElementById('assignModal').style.display='block';
-        const pending=[]; {% for req in service_requests %}{% if req.status=='pending' and not req.technician_name %}
-            pending.push({id:'{{ req.id }}',username:'{{ req.username }}',service:'{{ req.service[:80]|replace("'","\\'") }}'});
-        {% endif %}{% endfor %}
-        const list=document.getElementById('requestList');
-        if(pending.length===0) list.innerHTML='<div style="padding:20px;">No pending requests</div>';
-        else{ let h=''; pending.forEach(r=>{ h+=`<div class="request-item" onclick="assignToRequest('${r.id}')"><strong>${r.id}</strong> - ${r.username}<br><small>${r.service.substring(0,70)}</small></div>`; }); list.innerHTML=h; }
+    
+    function showPhoto(src) {
+        document.getElementById('photoModal').style.display = 'block';
+        document.getElementById('modalImage').src = src;
     }
-    function assignToRequest(reqId){
-        const f=document.createElement('form'); f.method='POST'; f.action='/assign_technician_to_request';
-        f.innerHTML=`<input type="hidden" name="technician_id" value="${currentTechId}"><input type="hidden" name="request_id" value="${reqId}">`;
-        document.body.appendChild(f); f.submit();
+    
+    function closePhotoModal() {
+        document.getElementById('photoModal').style.display = 'none';
     }
-    function closeAssignModal(){ document.getElementById('assignModal').style.display='none'; }
-    window.onclick=function(e){ if(e.target.classList.contains('modal')) e.target.style.display='none'; }
+    
+    function openAssignModal(id, name, spec) {
+        currentTechId = id;
+        document.getElementById('techName').innerText = name;
+        document.getElementById('techSpecialty').innerText = spec;
+        document.getElementById('assignModal').style.display = 'block';
+        
+        const pending = [];
+        {% for req in service_requests %}
+            {% if req.status == 'pending' and not req.technician_name %}
+                pending.push({
+                    id: '{{ req.id }}',
+                    username: '{{ req.username }}',
+                    service: '{{ req.service[:80]|replace("'", "\\'") }}'
+                });
+            {% endif %}
+        {% endfor %}
+        
+        const list = document.getElementById('requestList');
+        if (pending.length === 0) {
+            list.innerHTML = '<div style="padding:20px;">No pending requests</div>';
+        } else {
+            let h = '';
+            pending.forEach(r => {
+                h += `<div class="request-item" onclick="assignToRequest('${r.id}')">
+                    <strong>${r.id}</strong> - ${r.username}<br>
+                    <small>${r.service.substring(0,70)}</small>
+                </div>`;
+            });
+            list.innerHTML = h;
+        }
+    }
+    
+    function assignToRequest(reqId) {
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = '/assign_technician_to_request';
+        f.innerHTML = `<input type="hidden" name="technician_id" value="${currentTechId}">
+                       <input type="hidden" name="request_id" value="${reqId}">`;
+        document.body.appendChild(f);
+        f.submit();
+    }
+    
+    function closeAssignModal() {
+        document.getElementById('assignModal').style.display = 'none';
+    }
+    
+    window.onclick = function(e) {
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+        }
+    }
 </script>
 </body>
 </html>

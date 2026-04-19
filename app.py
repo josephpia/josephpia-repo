@@ -18,8 +18,6 @@ import cloudinary.uploader
 import cloudinary.utils
 
 # ===== CLOUDINARY CONFIGURATION (REQUIRED FOR VERCEL) =====
-# Sign up for free at cloudinary.com (no credit card needed)
-# Add these environment variables in Vercel dashboard
 cloudinary.config(
     cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
     api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
@@ -67,17 +65,14 @@ class Config:
     """Configuration management using encapsulation"""
     def __init__(self):
         self._secret_key = os.environ.get('FLASK_SECRET_KEY', "secretkey123")
-        # Use temp directory for Vercel compatibility
         self._profile_upload_folder = tempfile.gettempdir() + '/uploads/profiles'
         self._service_upload_folder = tempfile.gettempdir() + '/uploads/service_requests'
         self._allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
         self._max_file_size = 5 * 1024 * 1024
         
-        # Create folders in temp directory
         os.makedirs(self._profile_upload_folder, exist_ok=True)
         os.makedirs(self._service_upload_folder, exist_ok=True)
         
-        # Service prices
         self._service_prices = {
             'Appliances Repair': 800,
             'Plumbing Repair': 600,
@@ -85,7 +80,6 @@ class Config:
             'Electronics Repair': 400,
         }
         
-        # Company payment accounts
         self._company_payment_accounts = {
             'gcash': {
                 'name': 'GCash',
@@ -160,7 +154,7 @@ class User:
         self._cellphone = cellphone
         self._role = role
         self._profile_pic = None
-        self._profile_pic_url = None  # Store Cloudinary URL
+        self._profile_pic_url = None
         self._join_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._total_requests = 0
     
@@ -356,12 +350,13 @@ class ServiceRequest:
         self._date_requested = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._service_photo = service_photo
         self._service_photo_url = service_photo_url
-        self._has_photo = service_photo is not None or service_photo_url is not None
+        self._has_photo = bool(service_photo_url)
         self._admin_notes = ""
         self._last_update = self._date_requested
         self._technician_id = None
         self._technician_name = None
         self._technician_specialty = None
+        self._technician_contact = None
         self._technician_assigned_date = None
         self._payment_status = PaymentStatus.UNPAID
         self._payment_method = None
@@ -453,6 +448,14 @@ class ServiceRequest:
         self._technician_specialty = value
     
     @property
+    def technician_contact(self):
+        return self._technician_contact
+    
+    @technician_contact.setter
+    def technician_contact(self, value):
+        self._technician_contact = value
+    
+    @property
     def technician_assigned_date(self):
         return self._technician_assigned_date
     
@@ -512,6 +515,7 @@ class ServiceRequest:
         self._technician_id = technician.id
         self._technician_name = technician.name
         self._technician_specialty = technician.specialty
+        self._technician_contact = technician.contact
         self._technician_assigned_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._status = RequestStatus.ONGOING
     
@@ -519,6 +523,7 @@ class ServiceRequest:
         self._technician_id = None
         self._technician_name = None
         self._technician_specialty = None
+        self._technician_contact = None
         self._technician_assigned_date = None
     
     def set_payment_info(self, payment_method: str, amount: int, payment_id: str, 
@@ -550,6 +555,7 @@ class ServiceRequest:
             "technician_id": self._technician_id,
             "technician_name": self._technician_name,
             "technician_specialty": self._technician_specialty,
+            "technician_contact": self._technician_contact,
             "technician_assigned_date": self._technician_assigned_date,
             "payment_status": self._payment_status.value if self._payment_status else "unpaid",
             "payment_method": self._payment_method,
@@ -727,17 +733,26 @@ class CloudinaryFileManager:
     """Cloudinary file management class for Vercel deployment"""
     def __init__(self, config: Config):
         self._config = config
+        self._is_configured = bool(
+            os.environ.get('CLOUDINARY_CLOUD_NAME') and 
+            os.environ.get('CLOUDINARY_API_KEY') and 
+            os.environ.get('CLOUDINARY_API_SECRET')
+        )
+        if not self._is_configured:
+            print("⚠️ WARNING: Cloudinary not configured!")
     
     def allowed_file(self, filename: str) -> bool:
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in self._config.allowed_extensions
     
     def upload_file(self, file, folder_type: str) -> Optional[str]:
-        """Upload file to Cloudinary and return URL"""
+        if not self._is_configured:
+            print("❌ Cloudinary not configured")
+            return None
+            
         try:
-            # Determine folder based on type
+            file.seek(0)
             folder = f"servicehub/{folder_type}"
             
-            # Upload to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file,
                 folder=folder,
@@ -748,13 +763,15 @@ class CloudinaryFileManager:
                 ]
             )
             
-            return upload_result['secure_url']
+            if upload_result and 'secure_url' in upload_result:
+                return upload_result['secure_url']
+            return None
+                
         except Exception as e:
-            print(f"Cloudinary upload error: {e}")
+            print(f"❌ Cloudinary upload error: {str(e)}")
             return None
     
     def delete_file(self, public_id: str):
-        """Delete file from Cloudinary"""
         try:
             if public_id:
                 cloudinary.uploader.destroy(public_id)
@@ -767,7 +784,6 @@ class QRCodeGenerator:
     """QR Code generation class"""
     @staticmethod
     def generate_payment_qr(payment_method: str, amount: int, request_id: str, username: str) -> Dict:
-        """Generate QR code for payment"""
         payment_data = QRCodeGenerator._create_payment_data(payment_method, amount, request_id, username)
         
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -784,7 +800,6 @@ class QRCodeGenerator:
     
     @staticmethod
     def _create_payment_data(payment_method: str, amount: int, request_id: str, username: str) -> str:
-        """Create payment data string"""
         current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         templates = {
@@ -822,7 +837,7 @@ Date: {current_date}"""
         return templates.get(payment_method, f"Payment Amount: ₱{amount}\nReference: {request_id}\nCustomer: {username}")
 
 
-# ===== SERVICE HUB MANAGER CLASS (Main Application Logic) =====
+# ===== SERVICE HUB MANAGER CLASS =====
 class ServiceHubManager:
     """Main application manager class"""
     def __init__(self, config: Config):
@@ -839,17 +854,14 @@ class ServiceHubManager:
         self._activity_id_counter = 1
         self._login_count = 0
         
-        # Initialize default admin
         self._init_default_admin()
         self._init_default_technicians()
     
     def _init_default_admin(self):
-        """Initialize default admin user"""
         admin = User("admin", "1234", "System", "Administrator", "admin@system.com", "admin")
         self._users["admin"] = admin
     
     def _init_default_technicians(self):
-        """Initialize default technicians"""
         default_techs = [
             (1, "John Santos", "Appliances Repair", "09123456789", "john@servicehub.com", 
              ["aircon", "air conditioner", "ac", "cooling", "refrigerant", "compressor"], 4.8),
@@ -868,25 +880,21 @@ class ServiceHubManager:
             self._technicians.append(technician)
     
     def _generate_request_id(self) -> str:
-        """Generate unique request ID"""
         self._request_id_counter += 1
         return f"SRQ-{self._request_id_counter}"
     
     def _generate_payment_id(self) -> str:
-        """Generate unique payment ID"""
         payment_id = f"PAY-{self._payment_id_counter}"
         self._payment_id_counter += 1
         return payment_id
     
     def log_activity(self, username: str, action: str, details: str = ""):
-        """Log user activity"""
         activity = ActivityLog(self._activity_id_counter, username, action, details)
         self._activities.append(activity)
         self._activity_id_counter += 1
     
     def create_user(self, username: str, password: str, firstname: str, lastname: str, 
                    email: str, **kwargs) -> bool:
-        """Create a new user"""
         if username in self._users:
             return False
         
@@ -896,7 +904,6 @@ class ServiceHubManager:
         return True
     
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
-        """Authenticate user login"""
         if username not in self._users:
             return None
         
@@ -909,7 +916,6 @@ class ServiceHubManager:
         return None
     
     def detect_service_category(self, service_text: str) -> str:
-        """Detect service category from text"""
         service_text_lower = service_text.lower()
         
         for technician in self._technicians:
@@ -919,7 +925,6 @@ class ServiceHubManager:
         return "General Repair"
     
     def get_available_technicians_for_service(self, service_text: str) -> List[Technician]:
-        """Get available technicians that can handle the service"""
         available_techs = []
         
         for tech in self._technicians:
@@ -929,7 +934,6 @@ class ServiceHubManager:
         return available_techs
     
     def create_service_request(self, username: str, service: str, service_photo_url: str = None) -> Optional[ServiceRequest]:
-        """Create a new service request"""
         if username not in self._users:
             return None
         
@@ -939,14 +943,12 @@ class ServiceHubManager:
         service_request = ServiceRequest(request_id, username, service, category, None, service_photo_url)
         self._service_requests.append(service_request)
         
-        # Increment user's total requests
         self._users[username].increment_requests()
         
         self.log_activity(username, "Service Request", f"{category}: {service[:50]}")
         return service_request
     
     def assign_technician_to_request(self, request_id: str, technician_id: int) -> bool:
-        """Assign a technician to a service request"""
         service_request = None
         for req in self._service_requests:
             if req.id == request_id:
@@ -969,11 +971,10 @@ class ServiceHubManager:
         technician.assign_request(request_id)
         
         self.log_activity(session.get('username'), "Assigned Technician", 
-                         f"Request {request_id} -> {technician.name} ({technician.specialty})")
+                         f"Request {request_id} -> {technician.name} ({technician.specialty}) - Contact: {technician.contact}")
         return True
     
     def unassign_technician_from_request(self, request_id: str) -> bool:
-        """Remove technician assignment from request"""
         service_request = None
         for req in self._service_requests:
             if req.id == request_id:
@@ -997,7 +998,6 @@ class ServiceHubManager:
         return True
     
     def add_technician(self, name: str, specialty: str, contact: str, email: str, keywords: str = "") -> Technician:
-        """Add a new technician"""
         new_id = max([t.id for t in self._technicians]) + 1 if self._technicians else 1
         
         default_keywords = {
@@ -1018,7 +1018,6 @@ class ServiceHubManager:
         return technician
     
     def delete_technician(self, technician_id: int) -> bool:
-        """Delete a technician"""
         for tech in self._technicians:
             if tech.id == technician_id:
                 for request_id in tech.assigned_requests:
@@ -1034,7 +1033,6 @@ class ServiceHubManager:
     
     def create_payment(self, request_id: str, username: str, payment_method: str, 
                       amount: int, reference_number: str = None, online_app: str = None) -> Optional[Payment]:
-        """Create a payment record"""
         service_request = None
         for req in self._service_requests:
             if req.id == request_id and req.username == username:
@@ -1056,7 +1054,6 @@ class ServiceHubManager:
         return payment
     
     def verify_payment(self, payment_id: str, verified_by: str, action: str = 'approve') -> bool:
-        """Verify or reject a payment"""
         for payment in self._payments:
             if payment.payment_id == payment_id:
                 if action == 'approve':
@@ -1073,7 +1070,6 @@ class ServiceHubManager:
         return False
     
     def confirm_cash_payment(self, request_id: str, confirmed_by: str) -> bool:
-        """Confirm cash payment"""
         for req in self._service_requests:
             if req.id == request_id:
                 if req.payment_status == PaymentStatus.PENDING_CASH:
@@ -1087,18 +1083,8 @@ class ServiceHubManager:
         return False
     
     def delete_user(self, username: str) -> bool:
-        """Delete a user"""
         if username == 'admin' or username not in self._users:
             return False
-        
-        user = self._users[username]
-        if user.profile_pic_url:
-            # Extract public_id from Cloudinary URL and delete
-            pass
-        
-        for req in self._service_requests[:]:
-            if req.username == username and req.service_photo_url:
-                pass
         
         self._service_requests = [req for req in self._service_requests if req.username != username]
         del self._users[username]
@@ -1107,19 +1093,11 @@ class ServiceHubManager:
         return True
     
     def delete_service_request(self, request_id: str) -> bool:
-        """Delete a service request"""
-        for req in self._service_requests:
-            if req.id == request_id:
-                if req.service_photo_url:
-                    pass
-                break
-        
         self._service_requests = [req for req in self._service_requests if req.id != request_id]
         self.log_activity(session.get('username'), "Deleted Request", request_id)
         return True
     
     def get_payment_summary(self) -> Dict:
-        """Get payment summary for admin dashboard"""
         total_revenue = sum(p.amount for p in self._payments if p.status == PaymentStatus.PAID)
         online_revenue = sum(p.amount for p in self._payments 
                            if p.status == PaymentStatus.PAID and p.payment_method == 'online')
@@ -1140,34 +1118,27 @@ class ServiceHubManager:
         }
     
     def get_user_requests(self, username: str) -> List[Dict]:
-        """Get requests for a specific user"""
         return [req.to_dict() for req in self._service_requests if req.username == username]
     
     def get_all_requests(self) -> List[Dict]:
-        """Get all service requests"""
         return [req.to_dict() for req in self._service_requests]
     
     def get_all_technicians(self) -> List[Dict]:
-        """Get all technicians"""
         return [tech.to_dict() for tech in self._technicians]
     
     def get_all_users(self) -> Dict:
-        """Get all users (excluding admin for certain views)"""
         return {username: user.to_dict() for username, user in self._users.items()}
     
     def get_activities(self, limit: int = 10) -> List[Dict]:
-        """Get recent activities"""
         return [activity.to_dict() for activity in self._activities[-limit:]]
     
     def get_technician_by_id(self, technician_id: int) -> Optional[Technician]:
-        """Get technician by ID"""
         for tech in self._technicians:
             if tech.id == technician_id:
                 return tech
         return None
     
     def get_request_by_id(self, request_id: str) -> Optional[ServiceRequest]:
-        """Get service request by ID"""
         for req in self._service_requests:
             if req.id == request_id:
                 return req
@@ -1182,7 +1153,6 @@ class ServiceHubManager:
         return self._config.service_prices
     
     def calculate_service_amount(self, category: str) -> int:
-        """Calculate service amount based on category"""
         return self._config.get_service_price(category)
 
 
@@ -1190,7 +1160,6 @@ class ServiceHubManager:
 config = Config()
 manager = ServiceHubManager(config)
 
-# Configure Flask app
 app.config['PROFILE_UPLOAD_FOLDER'] = config.profile_upload_folder
 app.config['SERVICE_UPLOAD_FOLDER'] = config.service_upload_folder
 app.config['MAX_CONTENT_LENGTH'] = config.max_file_size
@@ -1317,7 +1286,6 @@ def user_dashboard():
             if not file_manager.allowed_file(photo.filename):
                 profile_message = "Invalid file type"
             else:
-                # Upload to Cloudinary
                 uploaded_url = file_manager.upload_file(photo, 'profiles')
                 if uploaded_url:
                     user = manager._users.get(session['username'])
@@ -1336,16 +1304,29 @@ def user_dashboard():
         if not service:
             service_message = "Please enter your service request"
         else:
+            # Check for uploaded photo
             if 'service_photo' in request.files:
                 photo = request.files['service_photo']
-                if photo.filename != '':
+                if photo and photo.filename != '':
                     file_manager = CloudinaryFileManager(config)
                     if file_manager.allowed_file(photo.filename):
-                        service_photo_url = file_manager.upload_file(photo, 'service_requests')
+                        try:
+                            service_photo_url = file_manager.upload_file(photo, 'service_requests')
+                            if service_photo_url:
+                                print(f"✅ Photo uploaded successfully: {service_photo_url}")
+                            else:
+                                print("❌ Photo upload failed")
+                                service_message = "Photo upload failed, but request will be submitted without photo"
+                        except Exception as e:
+                            print(f"❌ Upload error: {str(e)}")
+                            service_message = f"Upload error: {str(e)}"
             
+            # Create service request with or without photo
             service_request = manager.create_service_request(session['username'], service, service_photo_url)
             if service_request:
-                service_message = "Service request submitted!"
+                service_message = "Service request submitted successfully!"
+                if service_photo_url:
+                    service_message += " Photo attached."
             else:
                 service_message = "Failed to submit request"
     
@@ -1498,7 +1479,7 @@ def delete_my_request(request_id):
     
     return redirect(url_for('user_dashboard'))
 
-# ===== PHOTO VIEWING ROUTES (UPDATED FOR CLOUDINARY) =====
+# ===== PHOTO VIEWING ROUTES =====
 @app.route('/view_profile_photo/<username>')
 @login_required
 def view_profile_photo(username):
@@ -1515,6 +1496,38 @@ def view_service_photo(request_id):
         return "No photo", 404
     return redirect(service_req.service_photo_url)
 
+# ===== TEST ROUTES (REMOVE AFTER TESTING) =====
+@app.route('/test-cloudinary')
+def test_cloudinary():
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME', '')
+    if not cloud_name:
+        return "❌ Cloudinary NOT configured! Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in Vercel environment variables."
+    return f"✅ Cloudinary configured with cloud name: {cloud_name}"
+
+@app.route('/test-upload', methods=['GET', 'POST'])
+def test_upload():
+    if request.method == 'POST':
+        if 'test_photo' in request.files:
+            photo = request.files['test_photo']
+            if photo.filename != '':
+                file_manager = CloudinaryFileManager(config)
+                url = file_manager.upload_file(photo, 'test')
+                if url:
+                    return f"""
+                    <h2>✅ Upload successful!</h2>
+                    <img src='{url}' width='300'>
+                    <p>URL: {url}</p>
+                    """
+                else:
+                    return "❌ Upload failed. Check Cloudinary configuration."
+    return '''
+        <h2>Test Photo Upload</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="test_photo" accept="image/*" required>
+            <button type="submit">Test Upload to Cloudinary</button>
+        </form>
+    '''
+
 # ===== ADMIN DASHBOARD =====
 @app.route('/admindashboard')
 @admin_required
@@ -1529,7 +1542,6 @@ def admin_dashboard():
     users_with_photos = len([u for u in manager._users.values() if u.profile_pic_url])
     requests_with_photos = len([r for r in manager._service_requests if r.has_photo])
     
-    # Prepare chart data
     week_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     week_data = [0] * 7
     
@@ -1757,7 +1769,6 @@ def not_found(e):
 
 
 # ===== VERCEL DEPLOYMENT =====
-# This is the entry point for Vercel serverless functions
 application = app
 
 if __name__ == "__main__":

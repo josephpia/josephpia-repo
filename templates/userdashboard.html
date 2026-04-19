@@ -310,6 +310,44 @@
         .btn-delete { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
         .btn-pay { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
 
+        /* Copy button */
+        .btn-copy {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: 0.1s;
+        }
+        .btn-copy:hover {
+            background: #2563eb;
+        }
+
+        /* Technician Contact Styles */
+        .technician-contact {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .contact-number {
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f766e;
+            background: #e6f7f5;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         /* Alerts */
         .alert {
             padding: 16px 20px;
@@ -381,13 +419,16 @@
 
         .technician-info {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .technician-name {
             color: #0f766e;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .waiting-assignment {
@@ -421,8 +462,8 @@
     
     <div class="profile-section">
         <div class="profile-pic" onclick="document.getElementById('profilePhotoInput').click()">
-            {% if user and user.profile_pic %}
-                <img src="{{ url_for('view_profile_photo', username=session.username) }}" alt="Profile">
+            {% if user and user.profile_pic_url %}
+                <img src="{{ user.profile_pic_url }}" alt="Profile">
             {% else %}
                 <div class="no-photo"><i class="fas fa-user-circle"></i></div>
             {% endif %}
@@ -449,7 +490,7 @@
         <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/*" onchange="this.form.submit()">
     </form>
 
-    <!-- ⭐ REDESIGNED "SUBMIT SERVICE REQUEST" CARD — PROFESSIONAL & CLEAN ⭐ -->
+    <!-- SUBMIT SERVICE REQUEST CARD -->
     <div class="card">
         <div class="card-header">
             <div class="icon"><i class="fas fa-pen-to-square"></i></div>
@@ -500,7 +541,7 @@
         {% endif %}
     </div>
 
-    <!-- MY REQUESTS CARD (functionality unchanged, style updated) -->
+    <!-- MY REQUESTS CARD - WITH TECHNICIAN CONTACT INFO ADDED -->
     <div class="card">
         <div class="card-header">
             <div class="icon"><i class="fas fa-clock-rotate-left"></i></div>
@@ -514,7 +555,7 @@
             <table class="requests-table">
                 <thead>
                     <tr>
-                        <th>ID</th><th>Description</th><th>Photo</th><th>Technician</th><th>Status</th><th>Payment</th><th>Date</th><th>Admin note</th><th>Actions</th>
+                        <th>ID</th><th>Description</th><th>Photo</th><th>Technician & Contact</th><th>Status</th><th>Payment</th><th>Date</th><th>Admin note</th><th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -523,19 +564,38 @@
                         <td><strong>#{{ req.id }}</strong></td>
                         <td style="max-width:200px;">{{ req.service[:60] }}{% if req.service|length > 60 %}...{% endif %}</td>
                         <td>
-                            {% if req.service_photo %}
-                                <img src="{{ url_for('view_service_photo', request_id=req.id) }}" class="photo-thumb" onclick="window.open(this.src)">
+                            {% if req.service_photo_url %}
+                                <img src="{{ req.service_photo_url }}" class="photo-thumb" onclick="window.open(this.src)">
                             {% else %}<span style="color:#94a3b8;">—</span>{% endif %}
                         </td>
+                        <!-- Technician & Contact Column (UPDATED with contact info) -->
                         <td>
                             {% if req.technician_name %}
                                 <div class="technician-info">
-                                    <i class="fas fa-user-gear" style="color:#0f766e;"></i>
-                                    <div><span class="technician-name">{{ req.technician_name }}</span>
-                                    {% if req.technician_specialty %}<div style="font-size:11px;">{{ req.technician_specialty }}</div>{% endif %}
+                                    <div class="technician-name">
+                                        <i class="fas fa-user-gear" style="color:#0f766e;"></i>
+                                        <strong>{{ req.technician_name }}</strong>
+                                    </div>
+                                    {% if req.technician_specialty %}
+                                        <div style="font-size:12px; color:#64748b;">
+                                            <i class="fas fa-tools"></i> {{ req.technician_specialty }}
+                                        </div>
+                                    {% endif %}
+                                    <!-- TECHNICIAN CONTACT NUMBER DISPLAYED HERE -->
+                                    <div class="technician-contact">
+                                        <span class="contact-number">
+                                            <i class="fas fa-phone-alt"></i> {{ req.technician_contact|default('Contact not available') }}
+                                        </span>
+                                        {% if req.technician_contact %}
+                                            <button class="btn-copy" onclick="copyToClipboard('{{ req.technician_contact }}')">
+                                                <i class="fas fa-copy"></i> Copy
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </div>
-                            {% else %}<span class="waiting-assignment"><i class="far fa-hourglass"></i> Pending assignment</span>{% endif %}
+                            {% else %}
+                                <span class="waiting-assignment"><i class="far fa-hourglass"></i> Pending assignment</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if req.status == 'pending' %}<span class="status-badge status-pending">Pending</span>
@@ -544,7 +604,7 @@
                         </td>
                         <td>
                             {% if req.payment_status == 'paid' %}<span class="payment-badge payment-paid">✅ Paid</span>
-                            {% elif req.payment_status == 'pending_verification' %}<span class="payment-badge payment-pending">Verification</span>
+                            {% elif req.payment_status == 'for_verification' %}<span class="payment-badge payment-pending">Verification</span>
                             {% elif req.payment_status == 'pending_cash' %}<span class="payment-badge payment-pending">Cash pending</span>
                             {% elif req.status == 'completed' %}<span class="payment-badge payment-unpaid">Unpaid</span>
                             {% else %}<span class="payment-badge payment-unpaid">—</span>{% endif %}
@@ -559,9 +619,9 @@
                             {% if req.status == 'pending' %}
                                 <a href="/edit_request/{{ req.id }}" class="btn-edit"><i class="fas fa-pen"></i> Edit</a>
                                 <a href="/delete_my_request/{{ req.id }}" class="btn-delete" onclick="return confirm('Delete?')"><i class="fas fa-trash"></i> Del</a>
-                            {% elif req.status == 'completed' and req.payment_status != 'paid' and req.payment_status != 'pending_verification' and req.payment_status != 'pending_cash' %}
+                            {% elif req.status == 'completed' and req.payment_status != 'paid' and req.payment_status != 'for_verification' and req.payment_status != 'pending_cash' %}
                                 <a href="/create_payment/{{ req.id }}" class="btn-pay"><i class="fas fa-credit-card"></i> Pay</a>
-                            {% elif req.payment_status == 'pending_verification' %}
+                            {% elif req.payment_status == 'for_verification' %}
                                 <span style="color:#b45309;"><i class="fas fa-spinner"></i> verifying</span>
                             {% elif req.payment_status == 'pending_cash' %}
                                 <span style="color:#b45309;"><i class="fas fa-cash-register"></i> cash pending</span>
@@ -595,7 +655,17 @@
 </div>
 
 <script>
-    // All existing functionality preserved — only design changed.
+    // Copy to clipboard function
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('✓ Contact number copied: ' + text);
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            alert('Failed to copy. Please copy manually.');
+        });
+    }
+
+    // Service Request Photo Upload
     const serviceDropZone = document.getElementById('servicePhotoDropZone');
     const servicePhotoInput = document.getElementById('servicePhotoInput');
     const servicePhotoPreview = document.getElementById('servicePhotoPreview');
