@@ -147,6 +147,8 @@ Admin Account:
  * Shows: Service Request ID, Description, Technician, Status, Payment Status, Date of request, Admin note, Action
  * Service request status indacator: (Pending, On-going, Completed)
  * Payment status indacator: (Unpaid, Paid)
+**To view the upload photo you need to configured Cloudinary**
+**Or use the local storage for photos instead of cloudinary**(the code is in my new file)
 
 **3.Update Service Request**
  * Click **Edit** botton on any available Service Request
@@ -223,20 +225,36 @@ Admin Account:
  * Access via/Userdashboard click pay
  * Click the "Pay" botton and select any online payment method
  * After choosing payment method the system automatic generate QR code
- * After scanning the QR code you can now process the payment
+ * After scanning the QR code you can now process the payment(**reminder the contact number is not mine**)
  * After process you put the Payment Verification or the transaction reference number you receive
  * Click "Submit Payment" botton and wait for approval
 
 **2.Payment using cash**
+ * Give the money to technician
  * Click "Pay" botton and select Cash Payment
  * Click "Submit Payment" botton and wait for approval
 
-**3.View Payment Status**(After Processing the Payment Method,)
+**3.View Payment Status**(After Processing the Payment Method)
  * Click "Back to Dashboard" botton
  * View payment status(cash pending, gcash pending, etc..)
 
 * **Module 4: Service History & Reporting**
-  *
+  **Currently Working**
 
-## Issue: "Data disappears after restart"
+===
+# Troubleshooting
+___
+## Issue:"Data disappears after restart"
 Normal Behavior: In-memory database resets on app restart.
+___
+## Issue:CLOUDINARY NOT CONFIHURED
+Solution:CLOUDINARY_CLOUD_NAME = dgegm9vs2
+        CLOUDINARY_API_KEY = 987832455938487
+        CLOUDINARY_API_SECRET = qkj9NH-P4Sa8XMClLfcqRf2FqOg
+        FLASK_SECRET_KEY = secretkey123
+___
+## Issue: "Login credentials not working"
+Solution:Check spelling
+
+Admin: admin / 1234
+Staff: (username you made) / (userpassword you made)

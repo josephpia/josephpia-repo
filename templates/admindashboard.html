@@ -401,25 +401,33 @@
             <p>Admin Command</p>
         </div>
         <div class="sidebar-menu">
-            <a href="?section=dashboard" class="menu-item {% if section == 'dashboard' %}active{% endif %}">
-                <i class="fas fa-chart-pie"></i> Dashboard
-            </a>
-            <a href="?section=requests" class="menu-item {% if section == 'requests' %}active{% endif %}">
-                <i class="fas fa-clipboard-list"></i> Service Request
-            </a>
-            <a href="?section=technicians" class="menu-item {% if section == 'technicians' %}active{% endif %}">
-                <i class="fas fa-user-cog"></i> Technician
-            </a>
-            <a href="?section=payments" class="menu-item {% if section == 'payments' %}active{% endif %}">
-                <i class="fas fa-credit-card"></i> Payment
-            </a>
-            <a href="?section=settings" class="menu-item {% if section == 'settings' %}active{% endif %}">
-                <i class="fas fa-sliders-h"></i> Settings
-            </a>
-            <a href="/logout" class="menu-item">
-                <i class="fas fa-sign-out-alt"></i> Log out
-            </a>
-        </div>
+    <a href="?section=dashboard" class="menu-item {% if section == 'dashboard' %}active{% endif %}">
+        <i class="fas fa-chart-pie"></i> Dashboard
+    </a>
+    <a href="?section=requests" class="menu-item {% if section == 'requests' %}active{% endif %}">
+        <i class="fas fa-clipboard-list"></i> Service Request
+    </a>
+    <a href="?section=technicians" class="menu-item {% if section == 'technicians' %}active{% endif %}">
+        <i class="fas fa-user-cog"></i> Technician
+    </a>
+    <a href="?section=payments" class="menu-item {% if section == 'payments' %}active{% endif %}">
+        <i class="fas fa-credit-card"></i> Payment
+    </a>
+    <!-- NEW: Service History -->
+    <a href="/admin/service-history" class="menu-item">
+        <i class="fas fa-history"></i> Service History
+    </a>
+    <!-- NEW: Reports -->
+    <a href="?section=reports" class="menu-item {% if section == 'reports' %}active{% endif %}">
+        <i class="fas fa-chart-bar"></i> Reports
+    </a>
+    <a href="?section=settings" class="menu-item {% if section == 'settings' %}active{% endif %}">
+        <i class="fas fa-sliders-h"></i> Settings
+    </a>
+    <a href="/logout" class="menu-item">
+        <i class="fas fa-sign-out-alt"></i> Log out
+    </a>
+</div>
     </div>
 
     <!-- MAIN CONTENT -->
@@ -437,7 +445,80 @@
                 <i class="fas fa-shield-alt"></i> Admin
             </div>
         </div>
-
+    <!-- REPORTS SECTION (NEW) -->
+    <div class="section {% if section == 'reports' %}active{% endif %}">
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+           <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/daily'">
+               <i class="fas fa-calendar-day" style="font-size: 2em; color: var(--primary);"></i>
+                 <div class="number" style="font-size: 1.2em; margin-top: 10px;">Daily Report</div>
+            <div class="label">View today's income</div>
+        </div>
+        <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/monthly'">
+            <i class="fas fa-calendar-alt" style="font-size: 2em; color: var(--success);"></i>
+                <div class="number" style="font-size: 1.2em; margin-top: 10px;">Monthly Report</div>
+            <div class="label">Select month & view</div>
+        </div>
+        <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/statistics'">
+            <i class="fas fa-chart-line" style="font-size: 2em; color: var(--warning);"></i>
+                <div class="number" style="font-size: 1.2em; margin-top: 10px;">Statistics</div>
+            <div class="label">Advanced analytics</div>
+        </div>
+    </div>
+    
+    <!-- Service Status Summary Cards -->
+    {% if status_summary %}
+    <div class="data-table">
+        <h3><i class="fas fa-chart-simple"></i> Service Status Overview</h3>
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card">
+                <div class="number" style="color: #f39c12;">{{ status_summary.pending }}</div>
+                <div class="label">Pending Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="color: #3498db;">{{ status_summary.ongoing }}</div>
+                <div class="label">On-going Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="color: #27ae60;">{{ status_summary.completed }}</div>
+                <div class="label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ status_summary.total }}</div>
+                <div class="label">Total Requests</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recent Transactions -->
+    {% if recent_transactions %}
+    <div class="data-table">
+        <h3><i class="fas fa-clock"></i> Recent Completed Transactions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Customer</th>
+                    <th>Service</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in recent_transactions %}
+                <tr>
+                    <td>{{ t.request_id }}</td>
+                    <td>{{ t.username }}</td>
+                    <td>{{ t.category }}</td>
+                    <td><strong>₱{{ "%.2f"|format(t.amount) }}</strong></td>
+                    <td>{{ t.transaction_date.strftime('%Y-%m-%d') if t.transaction_date else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
         <!-- DASHBOARD -->
         <div class="section {% if section == 'dashboard' %}active{% endif %}">
             <div class="stats-grid">
