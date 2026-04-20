@@ -272,7 +272,17 @@
                                 <span class="badge badge-cash"><i class="fas fa-money-bill"></i> Cash</span>
                             {% endif %}
                         </td>
-                        <td>{{ req.completion_date[11:16] if req.completion_date else '—' }}</td>
+                        <td>
+                            {% if req.completion_date %}
+                                {% if req.completion_date is string %}
+                                    {{ req.completion_date[11:16] }}
+                                {% else %}
+                                    {{ req.completion_date.strftime('%H:%M') }}
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

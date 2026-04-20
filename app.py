@@ -2037,6 +2037,7 @@ def logout():
     session.clear()
     if username:
         manager.log_activity(username, "Logout", "User logged out")
+        
     return redirect(url_for('login'))
 
 # ===== ERROR HANDLERS =====

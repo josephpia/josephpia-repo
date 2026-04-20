@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard • ServiceHub</title>
-    <!-- Font Awesome for clean icons (professional touch) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -61,7 +60,7 @@
             min-height: 100vh;
         }
 
-        /* ========== SIDEBAR (professional, reordered) ========== */
+        /* ========== SIDEBAR ========== */
         .sidebar {
             width: 280px;
             background: var(--sidebar-bg);
@@ -155,7 +154,6 @@
             color: white;
         }
 
-        /* Logout special subtle style */
         .menu-item:last-child {
             margin-top: 16px;
             border-top: 1px solid rgba(255,255,255,0.08);
@@ -201,7 +199,6 @@
             font-weight: 500;
         }
 
-        /* Sections */
         .section {
             display: none;
         }
@@ -210,7 +207,6 @@
             display: block;
         }
 
-        /* Cards & Stats */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -280,7 +276,6 @@
             vertical-align: middle;
         }
 
-        /* Badges */
         .badge {
             display: inline-block;
             padding: 5px 12px;
@@ -337,7 +332,6 @@
             border: 2px solid var(--border-light);
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -374,17 +368,14 @@
             border-color: var(--primary);
         }
 
-        /* Receipt preview */
         .receipt-preview img { max-width: 100%; border-radius: 20px; }
 
-        /* Form grid */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
         }
 
-        /* Icons in titles */
         i {
             margin-right: 4px;
         }
@@ -392,7 +383,7 @@
 </head>
 <body class="{% if theme == 'dark' %}dark-theme{% else %}light-theme{% endif %}">
 <div class="dashboard-container">
-    <!-- SIDEBAR — REORDERED: dashboard, service request, technician, payment, settings, logout -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -401,33 +392,31 @@
             <p>Admin Command</p>
         </div>
         <div class="sidebar-menu">
-    <a href="?section=dashboard" class="menu-item {% if section == 'dashboard' %}active{% endif %}">
-        <i class="fas fa-chart-pie"></i> Dashboard
-    </a>
-    <a href="?section=requests" class="menu-item {% if section == 'requests' %}active{% endif %}">
-        <i class="fas fa-clipboard-list"></i> Service Request
-    </a>
-    <a href="?section=technicians" class="menu-item {% if section == 'technicians' %}active{% endif %}">
-        <i class="fas fa-user-cog"></i> Technician
-    </a>
-    <a href="?section=payments" class="menu-item {% if section == 'payments' %}active{% endif %}">
-        <i class="fas fa-credit-card"></i> Payment
-    </a>
-    <!-- NEW: Service History -->
-    <a href="/admin/service-history" class="menu-item">
-        <i class="fas fa-history"></i> Service History
-    </a>
-    <!-- NEW: Reports -->
-    <a href="?section=reports" class="menu-item {% if section == 'reports' %}active{% endif %}">
-        <i class="fas fa-chart-bar"></i> Reports
-    </a>
-    <a href="?section=settings" class="menu-item {% if section == 'settings' %}active{% endif %}">
-        <i class="fas fa-sliders-h"></i> Settings
-    </a>
-    <a href="/logout" class="menu-item">
-        <i class="fas fa-sign-out-alt"></i> Log out
-    </a>
-</div>
+            <a href="?section=dashboard" class="menu-item {% if section == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="?section=requests" class="menu-item {% if section == 'requests' %}active{% endif %}">
+                <i class="fas fa-clipboard-list"></i> Service Request
+            </a>
+            <a href="?section=technicians" class="menu-item {% if section == 'technicians' %}active{% endif %}">
+                <i class="fas fa-user-cog"></i> Technician
+            </a>
+            <a href="?section=payments" class="menu-item {% if section == 'payments' %}active{% endif %}">
+                <i class="fas fa-credit-card"></i> Payment
+            </a>
+            <a href="/admin/service-history" class="menu-item">
+                <i class="fas fa-history"></i> Service History
+            </a>
+            <a href="?section=reports" class="menu-item {% if section == 'reports' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i> Reports
+            </a>
+            <a href="?section=settings" class="menu-item {% if section == 'settings' %}active{% endif %}">
+                <i class="fas fa-sliders-h"></i> Settings
+            </a>
+            <a href="/logout" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i> Log out
+            </a>
+        </div>
     </div>
 
     <!-- MAIN CONTENT -->
@@ -438,6 +427,7 @@
                 {% elif section == 'requests' %}<i class="fas fa-clipboard-list"></i> Service Requests
                 {% elif section == 'payments' %}<i class="fas fa-credit-card"></i> Payment Management
                 {% elif section == 'technicians' %}<i class="fas fa-user-cog"></i> Technicians
+                {% elif section == 'reports' %}<i class="fas fa-chart-bar"></i> Reports & Analytics
                 {% elif section == 'settings' %}<i class="fas fa-sliders-h"></i> Settings
                 {% else %}Dashboard{% endif %}
             </div>
@@ -445,81 +435,8 @@
                 <i class="fas fa-shield-alt"></i> Admin
             </div>
         </div>
-    <!-- REPORTS SECTION (NEW) -->
-    <div class="section {% if section == 'reports' %}active{% endif %}">
-        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
-           <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/daily'">
-               <i class="fas fa-calendar-day" style="font-size: 2em; color: var(--primary);"></i>
-                 <div class="number" style="font-size: 1.2em; margin-top: 10px;">Daily Report</div>
-            <div class="label">View today's income</div>
-        </div>
-        <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/monthly'">
-            <i class="fas fa-calendar-alt" style="font-size: 2em; color: var(--success);"></i>
-                <div class="number" style="font-size: 1.2em; margin-top: 10px;">Monthly Report</div>
-            <div class="label">Select month & view</div>
-        </div>
-        <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/statistics'">
-            <i class="fas fa-chart-line" style="font-size: 2em; color: var(--warning);"></i>
-                <div class="number" style="font-size: 1.2em; margin-top: 10px;">Statistics</div>
-            <div class="label">Advanced analytics</div>
-        </div>
-    </div>
-    
-    <!-- Service Status Summary Cards -->
-    {% if status_summary %}
-    <div class="data-table">
-        <h3><i class="fas fa-chart-simple"></i> Service Status Overview</h3>
-        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-            <div class="stat-card">
-                <div class="number" style="color: #f39c12;">{{ status_summary.pending }}</div>
-                <div class="label">Pending Requests</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" style="color: #3498db;">{{ status_summary.ongoing }}</div>
-                <div class="label">On-going Services</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" style="color: #27ae60;">{{ status_summary.completed }}</div>
-                <div class="label">Completed</div>
-            </div>
-            <div class="stat-card">
-                <div class="number">{{ status_summary.total }}</div>
-                <div class="label">Total Requests</div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Recent Transactions -->
-    {% if recent_transactions %}
-    <div class="data-table">
-        <h3><i class="fas fa-clock"></i> Recent Completed Transactions</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Request ID</th>
-                    <th>Customer</th>
-                    <th>Service</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for t in recent_transactions %}
-                <tr>
-                    <td>{{ t.request_id }}</td>
-                    <td>{{ t.username }}</td>
-                    <td>{{ t.category }}</td>
-                    <td><strong>₱{{ "%.2f"|format(t.amount) }}</strong></td>
-                    <td>{{ t.transaction_date.strftime('%Y-%m-%d') if t.transaction_date else '' }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-        <!-- DASHBOARD -->
+
+        <!-- DASHBOARD SECTION -->
         <div class="section {% if section == 'dashboard' %}active{% endif %}">
             <div class="stats-grid">
                 <div class="stat-card"><div class="number">₱{{ payment_summary.total_revenue|default(0) }}</div><div class="label"><i class="fas fa-coins"></i> Total Revenue</div></div>
@@ -533,7 +450,7 @@
             </div>
         </div>
 
-        <!-- SERVICE REQUESTS SECTION - FIXED PHOTO VIEWING -->
+        <!-- SERVICE REQUESTS SECTION -->
         <div class="section {% if section == 'requests' %}active{% endif %}">
             <div class="data-table">
                 <h3><i class="fas fa-list-ul"></i> All Service Requests</h3>
@@ -553,29 +470,28 @@
                     <tbody>
                         {% for req in service_requests %}
                         <tr>
-                            <td>{{ req.id }}</strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong> </div>
-                            <td>{{ req.username }}</strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong> </div>
-                            <td style="max-width:200px;">{{ req.service[:50] }}{% if req.service|length > 50 %}...{% endif %}</strong> </div>
-                            <!-- FIXED PHOTO COLUMN - Uses Cloudinary URL directly -->
+                            <td>{{ req.id }}</td>
+                            <td>{{ req.username }}</td>
+                            <td style="max-width:200px;">{{ req.service[:50] }}{% if req.service|length > 50 %}...{% endif %}</td>
                             <td style="text-align: center;">
                                 {% if req.service_photo_url %}
                                     <img src="{{ req.service_photo_url }}" class="photo-thumb" onclick="window.open('{{ req.service_photo_url }}')" style="cursor: pointer;">
                                 {% else %}
                                     <span style="color: #9ca3af;">—</span>
                                 {% endif %}
-                            </strong> </div>
+                            </td>
                             <td>
                                 {% if req.status == 'pending' %}<span class="badge badge-pending">Pending</span>
                                 {% elif req.status == 'ongoing' %}<span class="badge badge-ongoing">On-Going</span>
                                 {% else %}<span class="badge badge-completed">Completed</span>{% endif %}
-                            </strong> </div>
+                            </td>
                             <td>
                                 {% if req.payment_status == 'paid' %}<span class="badge badge-paid">✅ Paid</span>
                                 {% elif req.payment_status == 'for_verification' %}<span class="badge badge-verification">🔍 For Verification</span>
                                 {% elif req.payment_status == 'pending_cash' %}<span class="badge badge-pending">💰 Pending Cash</span>
                                 {% else %}<span class="badge badge-pending">⏳ Unpaid</span>{% endif %}
-                            </strong> </div>
-                            <td>{{ req.technician_name|default('—') }}</strong> </div>
+                            </td>
+                            <td>{{ req.technician_name|default('—') }}</td>
                             <td>
                                  <form method="POST" action="/update_request/{{ req.id }}" style="display: inline-block; width: 100%;">
                                      <select name="status" style="margin-bottom: 5px;">
@@ -587,7 +503,7 @@
                                      <button type="submit" class="btn btn-primary" style="width: 100%;">Update</button>
                                  </form>
                                  <a href="/delete_request/{{ req.id }}" class="btn btn-danger" onclick="return confirm('Delete?')" style="display: block; text-align: center; margin-top: 5px;">Delete</a>
-                            </strong> </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -634,7 +550,7 @@
                                     <input type="hidden" name="action" value="reject">
                                     <button class="btn btn-danger">❌ Reject</button>
                                 </form>
-                            </strong> </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -664,17 +580,17 @@
                     <tbody>
                         {% for req in pending_cash %}
                         <tr>
-                            <td>{{ req.id }}</strong> </div>
-                            <td>{{ req.username }}</strong> </div>
-                            <td>{{ req.service[:50] }}...</strong> </div>
-                            <td><strong>₱{{ calculate_service_amount(req.category) }}</strong></strong> </div>
-                            <td>{{ req.date_requested[:10] }}</strong> </div>
-                            <td>{{ req.technician_name|default('Not assigned') }}</strong> </div>
+                            <td>{{ req.id }}</td>
+                            <td>{{ req.username }}</td>
+                            <td>{{ req.service[:50] }}...</td>
+                            <td><strong>₱{{ calculate_service_amount(req.category) }}</strong></td>
+                            <td>{{ req.date_requested[:10] }}</td>
+                            <td>{{ req.technician_name|default('Not assigned') }}</td>
                             <td>
                                 <form method="POST" action="/admin/confirm_cash_payment/{{ req.id }}" onsubmit="return confirm('Confirm cash?')">
                                     <button class="btn btn-success">💰 Confirm</button>
                                 </form>
-                            </strong> </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -711,16 +627,16 @@
                                 {% if p.payment_method == 'online' %}
                                     {% if p.online_app %}📱 {{ p.online_app }}{% else %}💻 Online{% endif %}
                                 {% else %}💵 Cash{% endif %}
-                            </strong> </div>
+                            </td>
                             <td>
                                 {% if p.status == 'paid' %}<span class="badge badge-paid">Paid</span>
                                 {% elif p.status == 'for_verification' %}<span class="badge badge-verification">Verification</span>
                                 {% elif p.status == 'pending_cash' %}<span class="badge badge-pending">Pending cash</span>
                                 {% elif p.status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
                                 {% else %}{{ p.status }}{% endif %}
-                            </strong> </div>
-                            <td>{{ p.verified_by|default('—') }}</strong> </div>
-                            <td>{{ p.payment_date[:10] }}</strong> </div>
+                            </td>
+                            <td>{{ p.verified_by|default('—') }}</td>
+                            <td>{{ p.payment_date[:10] }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -768,26 +684,69 @@
                     <tbody>
                         {% for tech in technicians %}
                         <tr>
-                            <td>{{ tech.id }}</strong> </div>
-                            <td><strong>{{ tech.name }}</strong></strong> </div>
-                            <td>{{ tech.specialty }}</strong> </div>
+                            <td>{{ tech.id }}</td>
+                            <td><strong>{{ tech.name }}</strong></td>
+                            <td>{{ tech.specialty }}</td>
                             <td>
                                 {% if tech.status == 'available' %}
                                     <span class="badge badge-available">🟢 Available</span>
                                 {% else %}
                                     <span class="badge badge-busy">🔴 Busy</span>
                                 {% endif %}
-                            </strong> </div>
-                            <td>{{ tech.contact }}</strong> </div>
-                            <td>{{ tech.assigned_requests|length }}</strong> </div>
+                            </td>
+                            <td>{{ tech.contact }}</td>
+                            <td>{{ tech.assigned_requests|length }}</td>
                             <td>
                                 <button class="btn btn-primary" onclick="openAssignModal({{ tech.id }}, '{{ tech.name }}', '{{ tech.specialty }}')">📋 Assign</button>
                                 <a href="/delete_technician/{{ tech.id }}" class="btn btn-danger" onclick="return confirm('Delete?')">Delete</a>
-                            </strong> </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- REPORTS SECTION (FIXED) -->
+        <div class="section {% if section == 'reports' %}active{% endif %}">
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/daily'">
+                    <i class="fas fa-calendar-day" style="font-size: 2em; color: var(--primary);"></i>
+                    <div class="number" style="font-size: 1.2em; margin-top: 10px;">Daily Report</div>
+                    <div class="label">View today's income</div>
+                </div>
+                <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/monthly'">
+                    <i class="fas fa-calendar-alt" style="font-size: 2em; color: var(--success);"></i>
+                    <div class="number" style="font-size: 1.2em; margin-top: 10px;">Monthly Report</div>
+                    <div class="label">Select month & view</div>
+                </div>
+                <div class="stat-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/admin/reports/statistics'">
+                    <i class="fas fa-chart-line" style="font-size: 2em; color: var(--warning);"></i>
+                    <div class="number" style="font-size: 1.2em; margin-top: 10px;">Statistics</div>
+                    <div class="label">Advanced analytics</div>
+                </div>
+            </div>
+            
+            <div class="data-table">
+                <h3><i class="fas fa-chart-simple"></i> Service Status Overview</h3>
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card">
+                        <div class="number" style="color: #f39c12;">{{ pending_requests|default(0) }}</div>
+                        <div class="label">Pending Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" style="color: #3498db;">{{ ongoing_requests|default(0) }}</div>
+                        <div class="label">On-going Services</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" style="color: #27ae60;">{{ completed_requests|default(0) }}</div>
+                        <div class="label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number">{{ total_requests|default(0) }}</div>
+                        <div class="label">Total Requests</div>
+                    </div>
+                </div>
             </div>
         </div>
 
