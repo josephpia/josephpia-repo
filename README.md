@@ -110,8 +110,14 @@ You should see output similar to:
 ## Step 5: Access the Application
 Open your web browser and navigate to:
 
+##For Vscode
 http://127.0.0.1:5000/
 You should see the ServiceHub login page.
+
+##For Vercel
+pyservicehub.vercel.app
+You should see the ServiceHub login page.
+
 
 ## Step 6: Login with Demo Credentials
 Admin Account:
